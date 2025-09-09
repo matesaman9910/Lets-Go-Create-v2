@@ -77,8 +77,8 @@ Only when status is set to *Whitelist Only*. Normally the server is open.
 ---
 
 ## 📬 Contact
-- **Server Admin:** Matej Kratochvíl  
-- **Email:** [matejkratochvilbilina@gmail.com](mailto:matejkratochvilbilina@gmail.com)  
+- **Server Admin:** matesaman9910  
+- **Email:** [matesaman9910@gmail.com](mailto:matesaman9910@gmail.com)  
 
 ---
 

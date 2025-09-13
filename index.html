@@ -15,8 +15,8 @@
     header{position:sticky;top:0;backdrop-filter:blur(8px);background:rgba(11,15,20,.6);border-bottom:1px solid rgba(255,255,255,.06);z-index:10}
     .nav{display:flex;align-items:center;justify-content:space-between;gap:16px}
     .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px}
-    /* Logo now uses your image */
-    .brand .logo{width:28px;height:28px;border-radius:8px;background: url('https://file.garden/aACuwggY3QmuIi9B/server-icon.png') center/cover no-repeat;box-shadow:0 6px 20px rgba(103,232,249,.35)}
+    /* Logo uses your image */
+    .brand .logo{width:28px;height:28px;border-radius:8px;background:url('https://file.garden/aACuwggY3QmuIi9B/server-icon.png') center/cover no-repeat;box-shadow:0 6px 20px rgba(103,232,249,.35)}
     .brand span{font-size:18px}
     .menu{display:flex;gap:14px;flex-wrap:wrap}
     .menu a{color:var(--muted);font-weight:600}
@@ -221,13 +221,19 @@
       elPing.textContent = (v.ping_ms!=null) ? `${v.ping_ms} ms` : '—';
       elUpdated.textContent = fmt(v.last_updated);
 
-      // Dynamic status note
+      // ---- New, simple rule set ----
+      // 1) If data is stale (> 60s old) → "connection lost / fully OFF"
+      // 2) Else if state=offline (fresh data) → "offline (monitor live)"
+      // 3) Else if online → online note
+      // 4) Else (starting/stopping/unknown) → generic note
       const now = Math.floor(Date.now()/1000);
-      const isStale = !v.last_updated || (now - v.last_updated) > 10*60;
+      const STALE_SECONDS = 60; // 1 minute
+      const isStale = !v.last_updated || (now - v.last_updated) > STALE_SECONDS;
+
       if (isStale) {
-        elNote.textContent = "This server is not 24/7. If the “Updated” time doesn’t change, the machine is likely OFF.";
+        elNote.textContent = "Connection lost: monitor not updating. This PC is not 24/7; server is likely fully OFF.";
       } else if (state === 'offline') {
-        elNote.textContent = "Monitor is live, but the server is currently OFFLINE — could be maintenance, backups, or a restart.";
+        elNote.textContent = "Server is OFFLINE (monitor live) — could be maintenance, backups, or a restart.";
       } else if (state === 'online') {
         elNote.textContent = "Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.";
       } else {

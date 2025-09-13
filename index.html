@@ -15,7 +15,8 @@
     header{position:sticky;top:0;backdrop-filter:blur(8px);background:rgba(11,15,20,.6);border-bottom:1px solid rgba(255,255,255,.06);z-index:10}
     .nav{display:flex;align-items:center;justify-content:space-between;gap:16px}
     .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px}
-    .brand .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(130deg,var(--brand),#22d3ee);box-shadow:0 6px 20px rgba(103,232,249,.35)}
+    /* Logo now uses your image */
+    .brand .logo{width:28px;height:28px;border-radius:8px;background: url('https://file.garden/aACuwggY3QmuIi9B/server-icon.png') center/cover no-repeat;box-shadow:0 6px 20px rgba(103,232,249,.35)}
     .brand span{font-size:18px}
     .menu{display:flex;gap:14px;flex-wrap:wrap}
     .menu a{color:var(--muted);font-weight:600}
@@ -36,6 +37,7 @@
     .label{color:var(--muted)} .value{font-weight:800}
     .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#0c121a;text-transform:uppercase;font-weight:800;font-size:12px;letter-spacing:.06em}
     .badge.ok{color:var(--ok);border-color:rgba(46,160,67,.5)} .badge.warn{color:var(--warn);border-color:rgba(187,128,9,.5)} .badge.err{color:var(--err);border-color:rgba(248,81,73,.5)}
+    .note{margin-top:8px;color:var(--muted);font-size:12px;line-height:1.4}
     section{margin-top:38px} h2{font-size:22px;margin:0 0 14px 0}
     .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px} @media(max-width:900px){.grid{grid-template-columns:1fr}}
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
@@ -81,6 +83,7 @@
           <div class="row"><span class="label">Ping</span><span class="value" id="ping">—</span></div>
         </div>
         <div class="row" style="margin-top:12px"><span class="label">Updated</span><span class="value" id="updated">—</span></div>
+        <div class="note" id="status-note">This server is not 24/7. If the “Updated” time doesn’t change, the machine is likely OFF.</div>
       </aside>
     </div>
 
@@ -123,7 +126,7 @@
       <div class="grid" style="margin-top:16px">
         <div class="card"><strong>Government & NDA</strong><br/>Employment terms, call-ups, armory access & confidentiality. <em>(Link your doc here)</em></div>
         <div class="card"><strong>Copyright</strong><br/>Ownership & usage policy for server systems. <em>(Link your doc here)</em></div>
-        <div class="card"><strong>More</strong><br/>Add anything else you’ve documented.</div>
+        <div class="card"><strong>Hosting</strong><br/>WE USE HOSTING ON A STRONG BUT NOT 24/7 SERVER PLEASE CHECK THE SERVER STATUS UP FOR INFO.</div>
       </div>
     </section>
 
@@ -144,6 +147,9 @@
     </footer>
   </main>
 
+  <!-- Sound (plays once when state transitions OFFLINE -> ONLINE) -->
+  <audio id="online-snd" src="https://file.garden/aACuwggY3QmuIi9B/aternos-sound.mp3" preload="auto"></audio>
+
   <!-- Firebase client (modular v9+) -->
   <script type="module">
     // Your Firebase web config
@@ -161,7 +167,7 @@
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const db  = getDatabase(app);
 
     // Elements
     const elState   = document.getElementById('state');
@@ -170,12 +176,13 @@
     const elVersion = document.getElementById('version');
     const elPing    = document.getElementById('ping');
     const elUpdated = document.getElementById('updated');
+    const elNote    = document.getElementById('status-note');
     const card      = document.getElementById('status');
-    const serverAddr = document.getElementById('server-address');
+    const serverAddr= document.getElementById('server-address');
 
-    // Copy IP button (uses the joinmc.link host exactly)
+    // Copy IP button
     document.getElementById('copy-ip').addEventListener('click', async (e) => {
-      const addr = serverAddr.textContent.trim(); // no :25565 for playit/joinmc links
+      const addr = serverAddr.textContent.trim();
       try { await navigator.clipboard.writeText(addr); flash(e.target, 'Copied!'); }
       catch { flash(e.target, 'Copy failed'); }
     });
@@ -192,19 +199,52 @@
     }
     function fmt(ts){ if(!ts) return '—'; const d=new Date(ts*1000); return d.toLocaleString(); }
 
-    // Live updates from Firebase
+    // Unlock audio on first user gesture (browser autoplay rules)
+    const onlineSnd = document.getElementById('online-snd');
+    let audioUnlocked = false;
+    addEventListener('click', () => {
+      if (audioUnlocked) return;
+      onlineSnd.play().then(() => { onlineSnd.pause(); onlineSnd.currentTime = 0; audioUnlocked = true; }).catch(()=>{});
+    }, { once:true });
+
+    // Track last state to play sound only on OFFLINE -> ONLINE
+    let prevState = null;
+
     onValue(ref(db, 'mc_status'), (snap)=>{
       const v = snap.val() || {};
-      setStateBadge(v.state);
+      const state = (v.state || 'unknown').toLowerCase();
+
+      setStateBadge(state);
       elMotd.textContent = v.motd ?? '—';
       elPlayers.textContent = `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
       elVersion.textContent = v.version ?? '—';
       elPing.textContent = (v.ping_ms!=null) ? `${v.ping_ms} ms` : '—';
       elUpdated.textContent = fmt(v.last_updated);
+
+      // Dynamic status note
+      const now = Math.floor(Date.now()/1000);
+      const isStale = !v.last_updated || (now - v.last_updated) > 10*60;
+      if (isStale) {
+        elNote.textContent = "This server is not 24/7. If the “Updated” time doesn’t change, the machine is likely OFF.";
+      } else if (state === 'offline') {
+        elNote.textContent = "Monitor is live, but the server is currently OFFLINE — could be maintenance, backups, or a restart.";
+      } else if (state === 'online') {
+        elNote.textContent = "Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.";
+      } else {
+        elNote.textContent = "Status updating… if the time stops changing, the machine is likely OFF.";
+      }
+
+      // Play sound once when transitioning from non-online -> online
+      if (prevState !== null && prevState !== 'online' && state === 'online') {
+        onlineSnd.currentTime = 0;
+        onlineSnd.play().catch(()=>{});
+      }
+      prevState = state;
     }, (err)=>{
       setStateBadge('offline');
       elMotd.textContent = 'Error loading status';
       console.error(err);
+      elNote.textContent = "Couldn’t load status right now. If the site keeps failing, check Discord.";
     });
   </script>
 </body>

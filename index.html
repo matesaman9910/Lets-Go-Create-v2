@@ -4,8 +4,29 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Let’s Go Create V2 — Minecraft Server</title>
-  <meta name="description" content="Let’s Go Create V2 — a professionally run Minecraft server with a living legal system, trials, government, and economy. Live status, how to join, modpack download, and Discord." />
+  <meta name="description" content="Let’s Go Create V2 — live status, how to join, modpack download, and Discord." />
   <meta name="theme-color" content="#2ea043" />
+  <!--
+    Expected Firebase structure (booleans):
+    {
+      "Status": {
+        "Lockdown": false,
+        "Maintenance": false,
+        "WhitelistOnly": false,
+        "EventLive": false,
+        "Emergency": false
+      },
+      "mc_status": {
+        "state": "online|offline|starting|stopping",
+        "last_updated": 0,
+        "players_online": 0,
+        "players_max": 0,
+        "version": "1.20.1",
+        "ping_ms": 0,
+        "motd": "§aWelcome ..."
+      }
+    }
+  -->
   <style>
     :root { --bg:#0b0f14; --panel:#0f1620; --card:#121a25; --border:#233142; --fg:#e6edf3; --muted:#a7b1bd; --brand:#67e8f9; --accent:#2ea043; --accent-2:#8b5cf6; --ok:#2ea043; --warn:#bb8009; --err:#f85149; --shadow:0 12px 40px rgba(0,0,0,.35); --radius:16px; }
     *{box-sizing:border-box}
@@ -41,9 +62,8 @@
     .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px} @media(max-width:900px){.grid{grid-template-columns:1fr}}
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
     footer{margin-top:40px;border-top:1px solid var(--border);padding:22px 0;color:var(--muted);font-size:13px}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
 
-    /* Override banner */
+    /* Override banners */
     .override{position:sticky;top:56px;z-index:20;margin:12px 0;padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:#111827;display:none;align-items:center;gap:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;box-shadow:var(--shadow)}
     .override.show{display:flex}
     .override.ok{border-color:rgba(46,160,67,.5)}
@@ -54,8 +74,6 @@
     .override.warn .pill{color:var(--warn)}
     .override.err .pill{color:var(--err)}
     .override .desc{font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
-    @keyframes pulseGlow{0%{box-shadow:0 0 0 0 rgba(103,232,249,.45)}70%{box-shadow:0 0 0 14px rgba(103,232,249,0)}100%{box-shadow:0 0 0 0 rgba(103,232,249,0)}}
-    .override.show{animation:pulseGlow 2.2s ease-out infinite}
     .error-big{position:sticky;top:56px;z-index:25;margin:12px 0;padding:14px 16px;border-radius:12px;border:2px dashed rgba(248,81,73,.6);background:#1a0f12;color:#ffd2d2;font-weight:900;display:none}
     .error-big.show{display:block}
   </style>
@@ -97,7 +115,7 @@
       <aside class="status" id="status">
         <div class="row" style="margin-bottom:8px"><span class="label">Server Status</span><span class="badge" id="state">LOADING</span></div>
         <div class="rows">
-          <div class="row"><span class="label">MOTD</span><span class="value mono" id="motd">—</span></div>
+          <div class="row"><span class="label">MOTD</span><span class="value" id="motd">—</span></div>
           <div class="row"><span class="label">Players</span><span class="value" id="players">—</span></div>
           <div class="row"><span class="label">Version</span><span class="value" id="version">—</span></div>
           <div class="row"><span class="label">Ping</span><span class="value" id="ping">—</span></div>
@@ -190,15 +208,17 @@
     const db  = getDatabase(app);
 
     // Elements
-    const elState   = document.getElementById('state');
-    const elMotd    = document.getElementById('motd');
-    const elPlayers = document.getElementById('players');
-    const elVersion = document.getElementById('version');
-    const elPing    = document.getElementById('ping');
-    const elUpdated = document.getElementById('updated');
-    const elNote    = document.getElementById('status-note');
-    const card      = document.getElementById('status');
-    const serverAddr= document.getElementById('server-address');
+    const elState    = document.getElementById('state');
+    const elMotd     = document.getElementById('motd');
+    const elPlayers  = document.getElementById('players');
+    const elVersion  = document.getElementById('version');
+    const elPing     = document.getElementById('ping');
+    const elUpdated  = document.getElementById('updated');
+    const elNote     = document.getElementById('status-note');
+    const card       = document.getElementById('status');
+    const serverAddr = document.getElementById('server-address');
+    const addrInline = document.getElementById('addr-inline');
+    if (addrInline) addrInline.textContent = serverAddr.textContent;
 
     // Override UI elements
     const ovBanner = document.getElementById('override-banner');
@@ -250,52 +270,57 @@
     let prevState = 'loading';
     let overrideInfo = null; // when set, it overrides badges/notes and also suppresses sound
 
-    // ---- Listen for override statuses (/Status) ----
-    onValue(ref(db, 'Status'), (snap)=>{
-      const raw = snap.val() || {};
-      const active = Object.entries(raw).filter(([k,v]) => !!v).map(([k]) => k);
+    function applyOverrideUI(m){
+      if (!m) { // clear
+        ovBanner.classList.remove('show','ok','warn','err');
+        ovError.classList.remove('show');
+        overrideInfo = null;
+        return;
+      }
+      ovLabel.textContent = m.label; ovDesc.textContent = m.desc;
+      ovBanner.className = 'override show ' + m.cls;
+      overrideInfo = m;
+      // Reflect on main badge immediately
+      elState.textContent = m.label; elState.className = 'badge ' + m.cls; card.className = 'status ' + m.cls;
+      elNote.textContent = m.desc;
+    }
 
-      // Multiple active → show error banner
+    function recomputeOverride(raw){
+      const active = Object.entries(raw).filter(([k,v]) => !!v).map(([k]) => k);
       if (active.length > 1) {
         ovError.classList.add('show');
-        ovBanner.classList.remove('show','ok','warn','err');
-        overrideInfo = { label: 'STATUS ERROR', desc: 'Multiple overrides enabled', cls: 'err' };
-        // Force badge to error wording
-        elState.textContent = 'STATUS ERROR'; elState.className='badge err'; card.className='status err';
-        elNote.textContent = 'Fix toggles in Firebase (only one of /Status flags should be true).';
+        applyOverrideUI({ label:'STATUS ERROR', cls:'err', desc:'Multiple overrides enabled' });
         return;
-      } else {
-        ovError.classList.remove('show');
       }
-
+      ovError.classList.remove('show');
       if (active.length === 1) {
         const key = active[0];
         const m = OV_MAP[key] || { label:key.toUpperCase(), cls:'warn', desc:'Special mode active.' };
-        ovLabel.textContent = m.label; ovDesc.textContent = m.desc;
-        ovBanner.className = 'override show ' + m.cls;
-        overrideInfo = m; // activate override
-        // Reflect override in the badge/note too
-        elState.textContent = m.label; elState.className = 'badge ' + m.cls; card.className = 'status ' + m.cls;
-        elNote.textContent = m.desc;
+        applyOverrideUI(m);
       } else {
-        // No overrides
-        ovBanner.classList.remove('show','ok','warn','err');
-        overrideInfo = null;
+        applyOverrideUI(null);
       }
+    }
+
+    // ---- Listen for override statuses (/Status) ----
+    onValue(ref(db, 'Status'), (snap)=>{
+      const raw = snap.val() || {};
+      console.log('[Status]', raw);
+      recomputeOverride(raw);
     });
 
     // ---- Live MC status (/mc_status) ----
     onValue(ref(db, 'mc_status'), (snap)=>{
       const v = snap.val() || {};
       const state = (v.state || 'loading').toLowerCase();
+      console.log('[mc_status]', v);
 
       // Update card fields always
-      setStateBadge(overrideInfo ? (overrideInfo.label) : state);
-      elMotd.textContent   = stripMinecraftCodes(v.motd);
-      elPlayers.textContent= `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
-      elVersion.textContent= v.version ?? '—';
-      elPing.textContent   = (v.ping_ms!=null) ? `${v.ping_ms} ms` : '—';
-      elUpdated.textContent= fmt(v.last_updated);
+      elMotd.textContent    = stripMinecraftCodes(v.motd);
+      elPlayers.textContent = `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
+      elVersion.textContent = v.version ?? '—';
+      elPing.textContent    = (v.ping_ms!=null) ? `${v.ping_ms} ms` : '—';
+      elUpdated.textContent = fmt(v.last_updated);
 
       // Note logic (skip if override is active)
       const now = Math.floor(Date.now()/1000);
@@ -303,16 +328,17 @@
       const isStale = !v.last_updated || (now - v.last_updated) > STALE_SECONDS;
 
       if (!overrideInfo) {
+        setStateBadge(state);
         if (isStale) {
-          elNote.innerHTML = "Connection lost: monitor not updating. This PC is not 24/7; server is likely fully OFF.";
+          elNote.textContent = "Connection lost: monitor not updating. This PC is not 24/7; server is likely fully OFF.";
         } else if (state === 'online') {
-          elNote.innerHTML = "Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.";
+          elNote.textContent = "Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.";
         } else if (state === 'offline') {
-          elNote.innerHTML = "Server is <strong>OFF</strong> (monitor live) — could be maintenance, backups, or a restart.";
+          elNote.textContent = "Server is OFF (monitor live) — could be maintenance, backups, or a restart.";
         } else if (state === 'starting' || state === 'stopping') {
-          elNote.innerHTML = "Status: <strong>STARTING/STOPPING</strong> — please wait, this can take a minute.";
+          elNote.textContent = "Status: STARTING/STOPPING — please wait, this can take a minute.";
         } else {
-          elNote.innerHTML = "Current status is <strong>LOADING</strong>. If you see this over 5 seconds, refresh the page or contact us on Discord.";
+          elNote.textContent = "Current status is LOADING. If you see this over 5 seconds, refresh the page or contact us on Discord.";
         }
       }
 
@@ -326,16 +352,18 @@
 
       prevState = state;
     }, (err)=>{
-      setStateBadge('offline');
-      elMotd.textContent = 'Error loading status';
       console.error(err);
-      if (!overrideInfo) elNote.textContent = "Couldn’t load status right now. If the site keeps failing, check Discord.";
+      if (!overrideInfo) {
+        setStateBadge('offline');
+        elMotd.textContent = 'Error loading status';
+        elNote.textContent = "Couldn’t load status right now. If the site keeps failing, check Discord.";
+      }
     });
 
     // If we remain in LOADING for >5s from page load, remind user
     setTimeout(() => {
       if (document.getElementById('state').textContent === 'LOADING' && !overrideInfo) {
-        elNote.innerHTML = "Current status is <strong>LOADING</strong>. If you see this over 5 seconds, refresh the page or contact us on Discord.";
+        elNote.textContent = "Current status is LOADING. If you see this over 5 seconds, refresh the page or contact us on Discord.";
       }
     }, 5000);
   </script>

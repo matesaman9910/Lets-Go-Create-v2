@@ -6,25 +6,12 @@
   <title>Let’s Go Create V2 — Minecraft Server</title>
   <meta name="description" content="Let’s Go Create V2 — live status, how to join, modpack download, and Discord." />
   <meta name="theme-color" content="#2ea043" />
+  <meta http-equiv="Cache-Control" content="no-store" />
   <!--
-    Expected Firebase structure (booleans):
+    Firebase data shape:
     {
-      "Status": {
-        "Lockdown": false,
-        "Maintenance": false,
-        "WhitelistOnly": false,
-        "EventLive": false,
-        "Emergency": false
-      },
-      "mc_status": {
-        "state": "online|offline|starting|stopping",
-        "last_updated": 0,
-        "players_online": 0,
-        "players_max": 0,
-        "version": "1.20.1",
-        "ping_ms": 0,
-        "motd": "§aWelcome ..."
-      }
+      "Status": { "Lockdown":false, "Maintenance":false, "WhitelistOnly":false, "EventLive":false, "Emergency":false },
+      "mc_status": { "state":"online|offline|starting|stopping", "last_updated": 0, "players_online":0, "players_max":0, "version":"1.20.1", "ping_ms":0, "motd":"§a..." }
     }
   -->
   <style>
@@ -63,7 +50,7 @@
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
     footer{margin-top:40px;border-top:1px solid var(--border);padding:22px 0;color:var(--muted);font-size:13px}
 
-    /* Override banners */
+    /* Override banner */
     .override{position:sticky;top:56px;z-index:20;margin:12px 0;padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:#111827;display:none;align-items:center;gap:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;box-shadow:var(--shadow)}
     .override.show{display:flex}
     .override.ok{border-color:rgba(46,160,67,.5)}
@@ -95,7 +82,6 @@
   </header>
 
   <main class="wrap">
-    <!-- Override banners -->
     <div id="override-error" class="error-big">STATUS ERROR — Multiple overrides active. Fix toggles in Firebase.</div>
     <div id="override-banner" class="override"><span class="pill" id="override-label"></span><span class="desc" id="override-desc"></span></div>
 
@@ -103,7 +89,7 @@
       <div class="pitch">
         <div class="kicker">Let’s Go Create V2</div>
         <h1>A living world with laws, trials, government & economy.</h1>
-        <p class="lead">Join a highly organized survival server where players help shape the society: court trials, ethics oversight, petitions, elections, and more. Fully documented. Professionally run.</p>
+        <p class="lead">Join a highly organized survival server where players help shape the society.</p>
         <div class="cta">
           <button class="btn primary" id="copy-ip"><span class="dot"></span> Copy Server Address</button>
           <a class="btn" id="mods-link" href="https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA" target="_blank" rel="noopener">Download Modpack</a>
@@ -125,58 +111,6 @@
       </aside>
     </div>
 
-    <section id="about">
-      <h2>What makes us different</h2>
-      <div class="grid">
-        <div class="card"><strong>Real Legal System</strong><br/>Trials, roles, appeals, and precedents that evolve with the community.</div>
-        <div class="card"><strong>Ethics Oversight</strong><br/>Independent committee monitors admin conduct to prevent abuse of power.</div>
-        <div class="card"><strong>Government & Jobs</strong><br/>Apply for paid roles, respond to calls, and sign an NDA for confidential access.</div>
-      </div>
-    </section>
-
-    <section id="join">
-      <h2>How to join</h2>
-      <div class="grid">
-        <div class="card"><strong>1) Download Mods</strong><br/>Get the modpack from the button above and import into your launcher (CurseForge/Prism/TL). </div>
-        <div class="card"><strong>2) Add Server</strong><br/>Use address <code id="addr-inline">known-resorts.gl.joinmc.link</code> and join the world.</div>
-        <div class="card"><strong>3) Read the Basics</strong><br/>Trials, petitions, and government are part of gameplay. Respect the systems and have fun.</div>
-      </div>
-    </section>
-
-    <section id="mods">
-      <h2>Modpack</h2>
-      <div class="grid">
-        <div class="card"><strong>Required Mods</strong><br/>Our modpack ensures compatibility with server features. Download from MEGA and import.
-          <div style="margin-top:8px"><a class="btn" href="https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA" target="_blank" rel="noopener">Open MEGA Folder</a></div>
-        </div>
-        <div class="card"><strong>Installation Tips</strong><br/>Use Java 17+, allocate 4–6 GB RAM, and keep mods and configs in sync with the pack.</div>
-        <div class="card"><strong>Troubleshooting</strong><br/>If you crash, remove old config caches, update GPU drivers, and verify mod versions match.</div>
-      </div>
-    </section>
-
-    <section id="rules">
-      <h2>Rules & Systems</h2>
-      <div class="grid">
-        <div class="card"><strong>Trials & Roles</strong><br/>Judge guide, roles, and trial script. <em>(Link your docs here)</em></div>
-        <div class="card"><strong>Ethics Committee</strong><br/>Watches admin actions, advises, cannot override. <em>(Link your doc here)</em></div>
-        <div class="card"><strong>Petitions</strong><br/>Formal, neutral wording, non-binding signals of change. <em>(Link your doc here)</em></div>
-      </div>
-      <div class="grid" style="margin-top:16px">
-        <div class="card"><strong>Government & NDA</strong><br/>Employment terms, call-ups, armory access & confidentiality. <em>(Link your doc here)</em></div>
-        <div class="card"><strong>Copyright</strong><br/>Ownership & usage policy for server systems. <em>(Link your doc here)</em></div>
-        <div class="card"><strong>Hosting</strong><br/>WE USE HOSTING ON A STRONG BUT NOT 24/7 SERVER PLEASE CHECK THE SERVER STATUS UP FOR INFO.</div>
-      </div>
-    </section>
-
-    <section id="faq">
-      <h2>FAQ</h2>
-      <div class="grid">
-        <div class="card"><strong>Server shows OFF?</strong><br/>Refresh the list and try direct connect. If the site shows <em>OFF</em>, the server may be rebooting.</div>
-        <div class="card"><strong>Can I stream/record?</strong><br/>Yes, but respect trials and sealed NDA topics when applicable.</div>
-        <div class="card"><strong>Where’s the Discord?</strong><br/>Use the **Join Discord** button above or the Discord item in the header.</div>
-      </div>
-    </section>
-
     <footer>
       <div class="row" style="justify-content:space-between">
         <div>© 2025 Let’s Go Create V2. All rights reserved.</div>
@@ -185,12 +119,9 @@
     </footer>
   </main>
 
-  <!-- Sound (plays once when transitioning to ONLINE) -->
   <audio id="online-snd" src="https://file.garden/aACuwggY3QmuIi9B/aternos-sound.mp3" preload="auto"></audio>
 
-  <!-- Firebase client (modular v9+) -->
   <script type="module">
-    // Your Firebase web config
     const firebaseConfig = {
       apiKey: "AIzaSyArccJnD2qGe8ty503oBv0SQ772dUVEvbk",
       authDomain: "letsgocreatev2.firebaseapp.com",
@@ -201,171 +132,136 @@
       appId: "1:226793735098:web:4f06f0d316d3cc62955383"
     };
 
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getDatabase, ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
     const app = initializeApp(firebaseConfig);
     const db  = getDatabase(app);
 
     // Elements
-    const elState    = document.getElementById('state');
-    const elMotd     = document.getElementById('motd');
-    const elPlayers  = document.getElementById('players');
-    const elVersion  = document.getElementById('version');
-    const elPing     = document.getElementById('ping');
-    const elUpdated  = document.getElementById('updated');
-    const elNote     = document.getElementById('status-note');
-    const card       = document.getElementById('status');
-    const serverAddr = document.getElementById('server-address');
-    const addrInline = document.getElementById('addr-inline');
-    if (addrInline) addrInline.textContent = serverAddr.textContent;
+    const elState   = document.getElementById('state');
+    const elMotd    = document.getElementById('motd');
+    const elPlayers = document.getElementById('players');
+    const elVersion = document.getElementById('version');
+    const elPing    = document.getElementById('ping');
+    const elUpdated = document.getElementById('updated');
+    const elNote    = document.getElementById('status-note');
+    const card      = document.getElementById('status');
 
-    // Override UI elements
+    // Override banner
     const ovBanner = document.getElementById('override-banner');
     const ovLabel  = document.getElementById('override-label');
     const ovDesc   = document.getElementById('override-desc');
     const ovError  = document.getElementById('override-error');
 
-    // Copy IP button
+    // Copy IP
     document.getElementById('copy-ip').addEventListener('click', async (e) => {
-      const addr = serverAddr.textContent.trim();
-      try { await navigator.clipboard.writeText(addr); flash(e.target, 'Copied!'); }
+      try { await navigator.clipboard.writeText('known-resorts.gl.joinmc.link'); flash(e.target, 'Copied!'); }
       catch { flash(e.target, 'Copy failed'); }
     });
     function flash(btn, txt){ const prev = btn.textContent; btn.textContent = txt; setTimeout(()=>btn.textContent = prev, 900); }
 
     // Helpers
-    function setStateBadge(state){
-      const s = (state||'').toLowerCase();
-      elState.className = 'badge';
-      card.className = 'status';
-      let label = 'LOADING';
-      if (s === 'online'){ label = 'ONLINE'; elState.classList.add('ok'); card.classList.add('ok'); }
-      else if (s === 'starting' || s === 'stopping'){ label = 'STARTING/STOPPING'; elState.classList.add('warn'); card.classList.add('warn'); }
-      else if (s === 'offline'){ label = 'OFF'; elState.classList.add('err'); card.classList.add('err'); }
-      else { label = 'LOADING'; elState.classList.add('warn'); }
-      elState.textContent = label;
-    }
-    function fmt(ts){ if(!ts) return '—'; const d=new Date(ts*1000); return d.toLocaleString(); }
+    const STALE_SECONDS = 60; // monitor considered OFF if older than this
+    function isStale(ts){ return !ts || (Math.floor(Date.now()/1000) - ts) > STALE_SECONDS; }
     function stripMinecraftCodes(s){ if(!s) return '—'; return s.replace(/§[0-9A-FK-OR]/gi, ''); }
 
-    // Map of override statuses (boolean flags under /Status)
+    function setBadge(label, cls){ elState.textContent = label; elState.className = 'badge ' + cls; card.className = 'status ' + cls; }
+
+    function setStateBadge(state, stale){
+      const s = (state||'').toLowerCase();
+      if (stale) { setBadge('OFF', 'err'); return; } // monitor OFF
+      if (s === 'online') { setBadge('ONLINE', 'ok'); return; }
+      if (s === 'starting' || s === 'stopping') { setBadge('STARTING/STOPPING', 'warn'); return; }
+      if (s === 'offline') { setBadge('OFFLINE', 'err'); return; } // server offline, monitor alive
+      setBadge('LOADING', 'warn');
+    }
+
+    // Override map & truthiness helper
     const OV_MAP = {
       Lockdown:      { label: 'LOCKDOWN',      cls: 'err',  desc: 'Restricted access — admins only.' },
       Maintenance:   { label: 'MAINTENANCE',   cls: 'warn', desc: 'Updates in progress; expect restarts.' },
       WhitelistOnly: { label: 'WHITELIST ONLY',cls: 'warn', desc: 'Only approved players may join.' },
       EventLive:     { label: 'EVENT LIVE',     cls: 'ok',   desc: 'Special event is active!' },
-      Emergency:     { label: 'EMERGENCY',      cls: 'err',  desc: 'Emergency shutdown/issue — check Discord.' }
+      Emergency:     { label: 'EMERGENCY',      cls: 'err',  desc: 'Emergency issue — check Discord.' }
     };
+    const isTrue = (v)=> v === true || v === 'true' || v === 1 || v === '1';
 
-    // Audio unlock (browser policy) and sound throttling
+    // Audio
     const onlineSnd = document.getElementById('online-snd');
-    let audioUnlocked = false;
-    let lastSoundMs = 0;
+    let audioUnlocked = false; let lastSoundMs = 0; let prevState = 'loading';
     addEventListener('click', () => {
       if (audioUnlocked) return;
       onlineSnd.play().then(() => { onlineSnd.pause(); onlineSnd.currentTime = 0; audioUnlocked = true; }).catch(()=>{});
     }, { once:true });
 
-    let prevState = 'loading';
-    let overrideInfo = null; // when set, it overrides badges/notes and also suppresses sound
-
+    let overrideInfo = null; // currently applied override
     function applyOverrideUI(m){
-      if (!m) { // clear
-        ovBanner.classList.remove('show','ok','warn','err');
-        ovError.classList.remove('show');
-        overrideInfo = null;
-        return;
-      }
-      ovLabel.textContent = m.label; ovDesc.textContent = m.desc;
-      ovBanner.className = 'override show ' + m.cls;
-      overrideInfo = m;
-      // Reflect on main badge immediately
-      elState.textContent = m.label; elState.className = 'badge ' + m.cls; card.className = 'status ' + m.cls;
-      elNote.textContent = m.desc;
+      if (!m) { ovBanner.classList.remove('show','ok','warn','err'); ovError.classList.remove('show'); overrideInfo = null; return; }
+      ovLabel.textContent = m.label; ovDesc.textContent = m.desc; ovBanner.className = 'override show ' + m.cls; overrideInfo = m;
+      setBadge(m.label, m.cls); elNote.textContent = m.desc;
     }
 
     function recomputeOverride(raw){
-      const active = Object.entries(raw).filter(([k,v]) => !!v).map(([k]) => k);
-      if (active.length > 1) {
-        ovError.classList.add('show');
-        applyOverrideUI({ label:'STATUS ERROR', cls:'err', desc:'Multiple overrides enabled' });
-        return;
-      }
+      const active = Object.entries(raw||{}) .filter(([k,v])=> isTrue(v)).map(([k])=>k);
+      if (active.length > 1) { ovError.classList.add('show'); applyOverrideUI({ label:'STATUS ERROR', cls:'err', desc:'Multiple overrides enabled' }); return; }
       ovError.classList.remove('show');
-      if (active.length === 1) {
-        const key = active[0];
-        const m = OV_MAP[key] || { label:key.toUpperCase(), cls:'warn', desc:'Special mode active.' };
-        applyOverrideUI(m);
-      } else {
-        applyOverrideUI(null);
-      }
+      if (active.length === 1) { const key = active[0]; applyOverrideUI(OV_MAP[key] || { label:key.toUpperCase(), cls:'warn', desc:'Special mode active.' }); }
+      else { applyOverrideUI(null); }
     }
 
-    // ---- Listen for override statuses (/Status) ----
-    onValue(ref(db, 'Status'), (snap)=>{
-      const raw = snap.val() || {};
-      console.log('[Status]', raw);
-      recomputeOverride(raw);
-    });
-
-    // ---- Live MC status (/mc_status) ----
-    onValue(ref(db, 'mc_status'), (snap)=>{
-      const v = snap.val() || {};
-      const state = (v.state || 'loading').toLowerCase();
-      console.log('[mc_status]', v);
-
-      // Update card fields always
-      elMotd.textContent    = stripMinecraftCodes(v.motd);
-      elPlayers.textContent = `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
-      elVersion.textContent = v.version ?? '—';
-      elPing.textContent    = (v.ping_ms!=null) ? `${v.ping_ms} ms` : '—';
-      elUpdated.textContent = fmt(v.last_updated);
-
-      // Note logic (skip if override is active)
-      const now = Math.floor(Date.now()/1000);
-      const STALE_SECONDS = 60; // 1 minute
-      const isStale = !v.last_updated || (now - v.last_updated) > STALE_SECONDS;
-
-      if (!overrideInfo) {
-        setStateBadge(state);
-        if (isStale) {
-          elNote.textContent = "Connection lost: monitor not updating. This PC is not 24/7; server is likely fully OFF.";
-        } else if (state === 'online') {
-          elNote.textContent = "Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.";
-        } else if (state === 'offline') {
-          elNote.textContent = "Server is OFF (monitor live) — could be maintenance, backups, or a restart.";
-        } else if (state === 'starting' || state === 'stopping') {
-          elNote.textContent = "Status: STARTING/STOPPING — please wait, this can take a minute.";
-        } else {
-          elNote.textContent = "Current status is LOADING. If you see this over 5 seconds, refresh the page or contact us on Discord.";
+    // Attach listeners (and allow re-attach on resume/online)
+    let unsubStatus = null, unsubMc = null;
+    function attach(){
+      if (unsubStatus) unsubStatus(); if (unsubMc) unsubMc();
+      unsubStatus = onValue(ref(db,'Status'), (snap)=>{ console.log('[Status]',snap.val()); recomputeOverride(snap.val()); }, (e)=>console.error('Status listener error', e));
+      unsubMc = onValue(ref(db,'mc_status'), (snap)=>{ const v=snap.val()||{}; const stale=isStale(v.last_updated); const state=(v.state||'loading').toLowerCase();
+        // Update fields
+        elMotd.textContent = stripMinecraftCodes(v.motd);
+        elPlayers.textContent = `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
+        elVersion.textContent = v.version ?? '—';
+        elPing.textContent = (v.ping_ms!=null)? `${v.ping_ms} ms` : '—';
+        elUpdated.textContent = v.last_updated? new Date(v.last_updated*1000).toLocaleString() : '—';
+        if (!overrideInfo) {
+          setStateBadge(state, stale);
+          if (stale) { elNote.textContent = 'Monitor is OFF — this PC is not 24/7. Server likely fully OFF.'; }
+          else if (state==='online') { elNote.textContent = 'Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.'; }
+          else if (state==='offline') { elNote.textContent = 'Server is OFFLINE (monitor alive) — could be maintenance, backups, or a restart.'; }
+          else if (state==='starting' || state==='stopping') { elNote.textContent = 'Status: STARTING/STOPPING — please wait, this can take a minute.'; }
+          else { elNote.textContent = 'Current status is LOADING. If you see this for over 5 seconds, refresh or check Discord.'; }
         }
-      }
-
-      // Play sound only on transition to ONLINE and only once (cooldown) and not during overrides
-      if (!overrideInfo && prevState !== 'online' && state === 'online' && audioUnlocked) {
-        const nowMs = Date.now();
-        if (nowMs - lastSoundMs > 15000) { // 15s cooldown safety
-          try { onlineSnd.currentTime = 0; onlineSnd.play().catch(()=>{}); lastSoundMs = nowMs; } catch(e){}
+        // Sound on transition to ONLINE (only when not overridden and not stale)
+        if (!overrideInfo && !stale && prevState!=='online' && state==='online' && audioUnlocked) {
+          const nowMs=Date.now(); if (nowMs-lastSoundMs>15000){ try{ onlineSnd.currentTime=0; onlineSnd.play(); lastSoundMs=nowMs; }catch(e){} }
         }
-      }
+        prevState = state;
+      }, (e)=>console.error('mc_status listener error',e));
+    }
 
-      prevState = state;
-    }, (err)=>{
-      console.error(err);
-      if (!overrideInfo) {
-        setStateBadge('offline');
-        elMotd.textContent = 'Error loading status';
-        elNote.textContent = "Couldn’t load status right now. If the site keeps failing, check Discord.";
-      }
-    });
+    attach();
 
-    // If we remain in LOADING for >5s from page load, remind user
-    setTimeout(() => {
-      if (document.getElementById('state').textContent === 'LOADING' && !overrideInfo) {
-        elNote.textContent = "Current status is LOADING. If you see this over 5 seconds, refresh the page or contact us on Discord.";
-      }
-    }, 5000);
+    // Background → foreground or network back online: force a refresh read (keeps live feel)
+    document.addEventListener('visibilitychange', async ()=>{ if (document.visibilityState==='visible'){ attach(); await hardRefreshRead(); }});
+    window.addEventListener('online', async ()=>{ attach(); await hardRefreshRead(); });
+
+    // Periodic hard refresh (poll) as a safety net in case WebSocket drops silently
+    async function hardRefreshRead(){
+      try {
+        const [s1, s2] = await Promise.all([ get(ref(db,'Status')), get(ref(db,'mc_status')) ]);
+        recomputeOverride(s1.val());
+        const v=s2.val()||{}; const stale=isStale(v.last_updated); const state=(v.state||'loading').toLowerCase();
+        elMotd.textContent = stripMinecraftCodes(v.motd);
+        elPlayers.textContent = `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
+        elVersion.textContent = v.version ?? '—';
+        elPing.textContent = (v.ping_ms!=null)? `${v.ping_ms} ms` : '—';
+        elUpdated.textContent = v.last_updated? new Date(v.last_updated*1000).toLocaleString() : '—';
+        if (!overrideInfo) setStateBadge(state, stale);
+      } catch(e){ console.error('Hard refresh failed', e); }
+    }
+    setInterval(hardRefreshRead, 20000); // every 20s
+
+    // Loading reminder
+    setTimeout(()=>{ if (elState.textContent==='LOADING' && !overrideInfo) elNote.textContent='Current status is LOADING. If you see this over 5 seconds, refresh the page or contact us on Discord.'; }, 5000);
   </script>
 </body>
 </html>

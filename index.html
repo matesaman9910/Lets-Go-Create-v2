@@ -42,6 +42,22 @@
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
     footer{margin-top:40px;border-top:1px solid var(--border);padding:22px 0;color:var(--muted);font-size:13px}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+
+    /* Override banner */
+    .override{position:sticky;top:56px;z-index:20;margin:12px 0;padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:#111827;display:none;align-items:center;gap:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;box-shadow:var(--shadow)}
+    .override.show{display:flex}
+    .override.ok{border-color:rgba(46,160,67,.5)}
+    .override.warn{border-color:rgba(187,128,9,.5)}
+    .override.err{border-color:rgba(248,81,73,.5)}
+    .override .pill{padding:4px 10px;border-radius:999px;border:1px solid var(--border)}
+    .override.ok .pill{color:var(--ok)}
+    .override.warn .pill{color:var(--warn)}
+    .override.err .pill{color:var(--err)}
+    .override .desc{font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
+    @keyframes pulseGlow{0%{box-shadow:0 0 0 0 rgba(103,232,249,.45)}70%{box-shadow:0 0 0 14px rgba(103,232,249,0)}100%{box-shadow:0 0 0 0 rgba(103,232,249,0)}}
+    .override.show{animation:pulseGlow 2.2s ease-out infinite}
+    .error-big{position:sticky;top:56px;z-index:25;margin:12px 0;padding:14px 16px;border-radius:12px;border:2px dashed rgba(248,81,73,.6);background:#1a0f12;color:#ffd2d2;font-weight:900;display:none}
+    .error-big.show{display:block}
   </style>
 </head>
 <body>
@@ -61,6 +77,10 @@
   </header>
 
   <main class="wrap">
+    <!-- Override banners -->
+    <div id="override-error" class="error-big">STATUS ERROR — Multiple overrides active. Fix toggles in Firebase.</div>
+    <div id="override-banner" class="override"><span class="pill" id="override-label"></span><span class="desc" id="override-desc"></span></div>
+
     <div class="hero" id="top">
       <div class="pitch">
         <div class="kicker">Let’s Go Create V2</div>
@@ -147,7 +167,7 @@
     </footer>
   </main>
 
-  <!-- Sound (plays once per unique online timestamp) -->
+  <!-- Sound (plays once when transitioning to ONLINE) -->
   <audio id="online-snd" src="https://file.garden/aACuwggY3QmuIi9B/aternos-sound.mp3" preload="auto"></audio>
 
   <!-- Firebase client (modular v9+) -->
@@ -180,6 +200,12 @@
     const card      = document.getElementById('status');
     const serverAddr= document.getElementById('server-address');
 
+    // Override UI elements
+    const ovBanner = document.getElementById('override-banner');
+    const ovLabel  = document.getElementById('override-label');
+    const ovDesc   = document.getElementById('override-desc');
+    const ovError  = document.getElementById('override-error');
+
     // Copy IP button
     document.getElementById('copy-ip').addEventListener('click', async (e) => {
       const addr = serverAddr.textContent.trim();
@@ -203,58 +229,98 @@
     function fmt(ts){ if(!ts) return '—'; const d=new Date(ts*1000); return d.toLocaleString(); }
     function stripMinecraftCodes(s){ if(!s) return '—'; return s.replace(/§[0-9A-FK-OR]/gi, ''); }
 
-    // Unlock audio on first user gesture (browser autoplay rules)
+    // Map of override statuses (boolean flags under /Status)
+    const OV_MAP = {
+      Lockdown:      { label: 'LOCKDOWN',      cls: 'err',  desc: 'Restricted access — admins only.' },
+      Maintenance:   { label: 'MAINTENANCE',   cls: 'warn', desc: 'Updates in progress; expect restarts.' },
+      WhitelistOnly: { label: 'WHITELIST ONLY',cls: 'warn', desc: 'Only approved players may join.' },
+      EventLive:     { label: 'EVENT LIVE',     cls: 'ok',   desc: 'Special event is active!' },
+      Emergency:     { label: 'EMERGENCY',      cls: 'err',  desc: 'Emergency shutdown/issue — check Discord.' }
+    };
+
+    // Audio unlock (browser policy) and sound throttling
     const onlineSnd = document.getElementById('online-snd');
     let audioUnlocked = false;
+    let lastSoundMs = 0;
     addEventListener('click', () => {
       if (audioUnlocked) return;
       onlineSnd.play().then(() => { onlineSnd.pause(); onlineSnd.currentTime = 0; audioUnlocked = true; }).catch(()=>{});
     }, { once:true });
 
-    // Track last state for transitions & play once per new online timestamp
     let prevState = 'loading';
-    const lastOnlineKey = 'lgc_last_online';
+    let overrideInfo = null; // when set, it overrides badges/notes and also suppresses sound
 
+    // ---- Listen for override statuses (/Status) ----
+    onValue(ref(db, 'Status'), (snap)=>{
+      const raw = snap.val() || {};
+      const active = Object.entries(raw).filter(([k,v]) => !!v).map(([k]) => k);
+
+      // Multiple active → show error banner
+      if (active.length > 1) {
+        ovError.classList.add('show');
+        ovBanner.classList.remove('show','ok','warn','err');
+        overrideInfo = { label: 'STATUS ERROR', desc: 'Multiple overrides enabled', cls: 'err' };
+        // Force badge to error wording
+        elState.textContent = 'STATUS ERROR'; elState.className='badge err'; card.className='status err';
+        elNote.textContent = 'Fix toggles in Firebase (only one of /Status flags should be true).';
+        return;
+      } else {
+        ovError.classList.remove('show');
+      }
+
+      if (active.length === 1) {
+        const key = active[0];
+        const m = OV_MAP[key] || { label:key.toUpperCase(), cls:'warn', desc:'Special mode active.' };
+        ovLabel.textContent = m.label; ovDesc.textContent = m.desc;
+        ovBanner.className = 'override show ' + m.cls;
+        overrideInfo = m; // activate override
+        // Reflect override in the badge/note too
+        elState.textContent = m.label; elState.className = 'badge ' + m.cls; card.className = 'status ' + m.cls;
+        elNote.textContent = m.desc;
+      } else {
+        // No overrides
+        ovBanner.classList.remove('show','ok','warn','err');
+        overrideInfo = null;
+      }
+    });
+
+    // ---- Live MC status (/mc_status) ----
     onValue(ref(db, 'mc_status'), (snap)=>{
       const v = snap.val() || {};
       const state = (v.state || 'loading').toLowerCase();
 
-      setStateBadge(state);
+      // Update card fields always
+      setStateBadge(overrideInfo ? (overrideInfo.label) : state);
       elMotd.textContent   = stripMinecraftCodes(v.motd);
       elPlayers.textContent= `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
       elVersion.textContent= v.version ?? '—';
       elPing.textContent   = (v.ping_ms!=null) ? `${v.ping_ms} ms` : '—';
       elUpdated.textContent= fmt(v.last_updated);
 
-      // ---- Note logic ----
+      // Note logic (skip if override is active)
       const now = Math.floor(Date.now()/1000);
       const STALE_SECONDS = 60; // 1 minute
       const isStale = !v.last_updated || (now - v.last_updated) > STALE_SECONDS;
 
-      if (isStale) {
-        elNote.innerHTML = "Connection lost: monitor not updating. This PC is not 24/7; server is likely fully OFF.";
-      } else if (state === 'online') {
-        elNote.innerHTML = "Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.";
-      } else if (state === 'offline') {
-        elNote.innerHTML = "Server is <strong>OFF</strong> (monitor live) — could be maintenance, backups, or a restart.";
-      } else if (state === 'starting' || state === 'stopping') {
-        elNote.innerHTML = "Status: <strong>STARTING/STOPPING</strong> — please wait, this can take a minute.";
-      } else {
-        elNote.innerHTML = "Current status is <strong>LOADING</strong>. If you see this over 5 seconds, refresh the page or contact us on Discord.";
+      if (!overrideInfo) {
+        if (isStale) {
+          elNote.innerHTML = "Connection lost: monitor not updating. This PC is not 24/7; server is likely fully OFF.";
+        } else if (state === 'online') {
+          elNote.innerHTML = "Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.";
+        } else if (state === 'offline') {
+          elNote.innerHTML = "Server is <strong>OFF</strong> (monitor live) — could be maintenance, backups, or a restart.";
+        } else if (state === 'starting' || state === 'stopping') {
+          elNote.innerHTML = "Status: <strong>STARTING/STOPPING</strong> — please wait, this can take a minute.";
+        } else {
+          elNote.innerHTML = "Current status is <strong>LOADING</strong>. If you see this over 5 seconds, refresh the page or contact us on Discord.";
+        }
       }
 
-      // ---- Online sound logic ----
-      // Play on live transition to ONLINE
-      if (prevState !== 'online' && state === 'online') {
-        try { onlineSnd.currentTime = 0; onlineSnd.play().catch(()=>{}); } catch(e){}
-      }
-      // Also play once when the online "epoch" changes (even if first snapshot is online)
-      if (state === 'online' && audioUnlocked) {
-        const ts = v.last_updated || 0;
-        const last = localStorage.getItem(lastOnlineKey);
-        if (String(last) !== String(ts)) {
-          try { onlineSnd.currentTime = 0; onlineSnd.play().catch(()=>{}); } catch(e){}
-          localStorage.setItem(lastOnlineKey, String(ts));
+      // Play sound only on transition to ONLINE and only once (cooldown) and not during overrides
+      if (!overrideInfo && prevState !== 'online' && state === 'online' && audioUnlocked) {
+        const nowMs = Date.now();
+        if (nowMs - lastSoundMs > 15000) { // 15s cooldown safety
+          try { onlineSnd.currentTime = 0; onlineSnd.play().catch(()=>{}); lastSoundMs = nowMs; } catch(e){}
         }
       }
 
@@ -263,12 +329,12 @@
       setStateBadge('offline');
       elMotd.textContent = 'Error loading status';
       console.error(err);
-      elNote.textContent = "Couldn’t load status right now. If the site keeps failing, check Discord.";
+      if (!overrideInfo) elNote.textContent = "Couldn’t load status right now. If the site keeps failing, check Discord.";
     });
 
     // If we remain in LOADING for >5s from page load, remind user
     setTimeout(() => {
-      if (elState.textContent === 'LOADING') {
+      if (document.getElementById('state').textContent === 'LOADING' && !overrideInfo) {
         elNote.innerHTML = "Current status is <strong>LOADING</strong>. If you see this over 5 seconds, refresh the page or contact us on Discord.";
       }
     }, 5000);

@@ -12,6 +12,7 @@ This page hosts all the essential information, downloads, and updates for our co
 * **Region:** EU (Czechia)
 * **Status:** Normal ✅ *(open to all players)*
 * **Download Modpack:** [📦 MEGA Link](https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA)
+* **Join Discord:** [💬 Invite Link](https://discord.gg/vGk4kKfQrj)
 
 ---
 
@@ -33,6 +34,7 @@ This page hosts all the essential information, downloads, and updates for our co
 4. Import the pack into PrismLauncher.
 5. Allocate **4–6 GB RAM**.
 6. Add the server IP: `known-resorts.gl.joinmc.link`.
+7. (Optional) Join our **Discord** for updates & support → [Invite](https://discord.gg/vGk4kKfQrj).
 
 ---
 
@@ -45,7 +47,7 @@ Highlights include:
 * **Combat/Defense**: TACZ, SecurityCraft, Orva Alarms, Reforged Play Mod.
 * **Performance**: ModernFix, Starlight, FerriteCore, AI Improvements.
 * **QoL**: JourneyMap, JEI, Polymorph, Sophisticated Backpacks.
-* **Survival/Content**: TerraFirmaCraft, Farmer’s Delight, Meds & Herbs.
+* **Survival/Content**: Farmer’s Delight, Meds & Herbs.
 
 📑 Full searchable mod list available directly on the website.
 

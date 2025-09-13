@@ -7,24 +7,11 @@ This page hosts all the essential information, downloads, and updates for our co
 
 ## 🖥️ Server Information
 
-* **Server IP:** `letsgocreatev2.join`
+* **Server IP:** `known-resorts.gl.joinmc.link`
 * **Minecraft Version:** `1.20.1` (Forge)
 * **Region:** EU (Czechia)
 * **Status:** Normal ✅ *(open to all players)*
 * **Download Modpack:** [📦 MEGA Link](https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA)
-
----
-
-## 🔧 Status Legend
-
-We announce server modes directly here:
-
-* ✅ **Normal** — Server open for everyone
-* 🔒 **Lockdown** — Restricted access / admins only
-* 🛠 **Maintenance** — Updates and fixes in progress
-* ❌ **Offline** — Server not running
-* 📝 **Whitelist Only** — Only approved players may join
-* 🎉 **Event Live** — Special events or scenarios
 
 ---
 
@@ -45,7 +32,7 @@ We announce server modes directly here:
 3. Download our full **modpack** → [MEGA Link](https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA).
 4. Import the pack into PrismLauncher.
 5. Allocate **4–6 GB RAM**.
-6. Add the server IP: `letsgocreatev2.join`.
+6. Add the server IP: `known-resorts.gl.joinmc.link`.
 
 ---
 

@@ -15,7 +15,6 @@
     header{position:sticky;top:0;backdrop-filter:blur(8px);background:rgba(11,15,20,.6);border-bottom:1px solid rgba(255,255,255,.06);z-index:10}
     .nav{display:flex;align-items:center;justify-content:space-between;gap:16px}
     .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px}
-    /* Logo uses your image */
     .brand .logo{width:28px;height:28px;border-radius:8px;background:url('https://file.garden/aACuwggY3QmuIi9B/server-icon.png') center/cover no-repeat;box-shadow:0 6px 20px rgba(103,232,249,.35)}
     .brand span{font-size:18px}
     .menu{display:flex;gap:14px;flex-wrap:wrap}
@@ -42,6 +41,7 @@
     .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px} @media(max-width:900px){.grid{grid-template-columns:1fr}}
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
     footer{margin-top:40px;border-top:1px solid var(--border);padding:22px 0;color:var(--muted);font-size:13px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
   </style>
 </head>
 <body>
@@ -75,15 +75,15 @@
       </div>
 
       <aside class="status" id="status">
-        <div class="row" style="margin-bottom:8px"><span class="label">Server Status</span><span class="badge" id="state">checking…</span></div>
+        <div class="row" style="margin-bottom:8px"><span class="label">Server Status</span><span class="badge" id="state">LOADING</span></div>
         <div class="rows">
-          <div class="row"><span class="label">MOTD</span><span class="value" id="motd">—</span></div>
+          <div class="row"><span class="label">MOTD</span><span class="value mono" id="motd">—</span></div>
           <div class="row"><span class="label">Players</span><span class="value" id="players">—</span></div>
           <div class="row"><span class="label">Version</span><span class="value" id="version">—</span></div>
           <div class="row"><span class="label">Ping</span><span class="value" id="ping">—</span></div>
         </div>
         <div class="row" style="margin-top:12px"><span class="label">Updated</span><span class="value" id="updated">—</span></div>
-        <div class="note" id="status-note">This server is not 24/7. If the “Updated” time doesn’t change, the machine is likely OFF.</div>
+        <div class="note" id="status-note">Current status is <strong>LOADING</strong>. If you see this over 5 seconds, refresh the page or contact us on Discord.</div>
       </aside>
     </div>
 
@@ -133,7 +133,7 @@
     <section id="faq">
       <h2>FAQ</h2>
       <div class="grid">
-        <div class="card"><strong>Server shows Offline?</strong><br/>Refresh the list and try direct connect. If the site shows <em>offline</em>, the server may be rebooting.</div>
+        <div class="card"><strong>Server shows OFF?</strong><br/>Refresh the list and try direct connect. If the site shows <em>OFF</em>, the server may be rebooting.</div>
         <div class="card"><strong>Can I stream/record?</strong><br/>Yes, but respect trials and sealed NDA topics when applicable.</div>
         <div class="card"><strong>Where’s the Discord?</strong><br/>Use the **Join Discord** button above or the Discord item in the header.</div>
       </div>
@@ -147,7 +147,7 @@
     </footer>
   </main>
 
-  <!-- Sound (plays once when state transitions OFFLINE -> ONLINE) -->
+  <!-- Sound (plays once per unique online timestamp) -->
   <audio id="online-snd" src="https://file.garden/aACuwggY3QmuIi9B/aternos-sound.mp3" preload="auto"></audio>
 
   <!-- Firebase client (modular v9+) -->
@@ -188,16 +188,20 @@
     });
     function flash(btn, txt){ const prev = btn.textContent; btn.textContent = txt; setTimeout(()=>btn.textContent = prev, 900); }
 
+    // Helpers
     function setStateBadge(state){
       const s = (state||'').toLowerCase();
       elState.className = 'badge';
       card.className = 'status';
-      if (s === 'online'){ elState.classList.add('ok'); card.classList.add('ok'); }
-      else if (s === 'starting' || s === 'stopping'){ elState.classList.add('warn'); card.classList.add('warn'); }
-      else { elState.classList.add('err'); card.classList.add('err'); }
-      elState.textContent = state ?? 'unknown';
+      let label = 'LOADING';
+      if (s === 'online'){ label = 'ONLINE'; elState.classList.add('ok'); card.classList.add('ok'); }
+      else if (s === 'starting' || s === 'stopping'){ label = 'STARTING/STOPPING'; elState.classList.add('warn'); card.classList.add('warn'); }
+      else if (s === 'offline'){ label = 'OFF'; elState.classList.add('err'); card.classList.add('err'); }
+      else { label = 'LOADING'; elState.classList.add('warn'); }
+      elState.textContent = label;
     }
     function fmt(ts){ if(!ts) return '—'; const d=new Date(ts*1000); return d.toLocaleString(); }
+    function stripMinecraftCodes(s){ if(!s) return '—'; return s.replace(/§[0-9A-FK-OR]/gi, ''); }
 
     // Unlock audio on first user gesture (browser autoplay rules)
     const onlineSnd = document.getElementById('online-snd');
@@ -207,44 +211,53 @@
       onlineSnd.play().then(() => { onlineSnd.pause(); onlineSnd.currentTime = 0; audioUnlocked = true; }).catch(()=>{});
     }, { once:true });
 
-    // Track last state to play sound only on OFFLINE -> ONLINE
-    let prevState = null;
+    // Track last state for transitions & play once per new online timestamp
+    let prevState = 'loading';
+    const lastOnlineKey = 'lgc_last_online';
 
     onValue(ref(db, 'mc_status'), (snap)=>{
       const v = snap.val() || {};
-      const state = (v.state || 'unknown').toLowerCase();
+      const state = (v.state || 'loading').toLowerCase();
 
       setStateBadge(state);
-      elMotd.textContent = v.motd ?? '—';
-      elPlayers.textContent = `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
-      elVersion.textContent = v.version ?? '—';
-      elPing.textContent = (v.ping_ms!=null) ? `${v.ping_ms} ms` : '—';
-      elUpdated.textContent = fmt(v.last_updated);
+      elMotd.textContent   = stripMinecraftCodes(v.motd);
+      elPlayers.textContent= `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
+      elVersion.textContent= v.version ?? '—';
+      elPing.textContent   = (v.ping_ms!=null) ? `${v.ping_ms} ms` : '—';
+      elUpdated.textContent= fmt(v.last_updated);
 
-      // ---- New, simple rule set ----
-      // 1) If data is stale (> 60s old) → "connection lost / fully OFF"
-      // 2) Else if state=offline (fresh data) → "offline (monitor live)"
-      // 3) Else if online → online note
-      // 4) Else (starting/stopping/unknown) → generic note
+      // ---- Note logic ----
       const now = Math.floor(Date.now()/1000);
       const STALE_SECONDS = 60; // 1 minute
       const isStale = !v.last_updated || (now - v.last_updated) > STALE_SECONDS;
 
       if (isStale) {
-        elNote.textContent = "Connection lost: monitor not updating. This PC is not 24/7; server is likely fully OFF.";
-      } else if (state === 'offline') {
-        elNote.textContent = "Server is OFFLINE (monitor live) — could be maintenance, backups, or a restart.";
+        elNote.innerHTML = "Connection lost: monitor not updating. This PC is not 24/7; server is likely fully OFF.";
       } else if (state === 'online') {
-        elNote.textContent = "Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.";
+        elNote.innerHTML = "Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.";
+      } else if (state === 'offline') {
+        elNote.innerHTML = "Server is <strong>OFF</strong> (monitor live) — could be maintenance, backups, or a restart.";
+      } else if (state === 'starting' || state === 'stopping') {
+        elNote.innerHTML = "Status: <strong>STARTING/STOPPING</strong> — please wait, this can take a minute.";
       } else {
-        elNote.textContent = "Status updating… if the time stops changing, the machine is likely OFF.";
+        elNote.innerHTML = "Current status is <strong>LOADING</strong>. If you see this over 5 seconds, refresh the page or contact us on Discord.";
       }
 
-      // Play sound once when transitioning from non-online -> online
-      if (prevState !== null && prevState !== 'online' && state === 'online') {
-        onlineSnd.currentTime = 0;
-        onlineSnd.play().catch(()=>{});
+      // ---- Online sound logic ----
+      // Play on live transition to ONLINE
+      if (prevState !== 'online' && state === 'online') {
+        try { onlineSnd.currentTime = 0; onlineSnd.play().catch(()=>{}); } catch(e){}
       }
+      // Also play once when the online "epoch" changes (even if first snapshot is online)
+      if (state === 'online' && audioUnlocked) {
+        const ts = v.last_updated || 0;
+        const last = localStorage.getItem(lastOnlineKey);
+        if (String(last) !== String(ts)) {
+          try { onlineSnd.currentTime = 0; onlineSnd.play().catch(()=>{}); } catch(e){}
+          localStorage.setItem(lastOnlineKey, String(ts));
+        }
+      }
+
       prevState = state;
     }, (err)=>{
       setStateBadge('offline');
@@ -252,6 +265,13 @@
       console.error(err);
       elNote.textContent = "Couldn’t load status right now. If the site keeps failing, check Discord.";
     });
+
+    // If we remain in LOADING for >5s from page load, remind user
+    setTimeout(() => {
+      if (elState.textContent === 'LOADING') {
+        elNote.innerHTML = "Current status is <strong>LOADING</strong>. If you see this over 5 seconds, refresh the page or contact us on Discord.";
+      }
+    }, 5000);
   </script>
 </body>
 </html>

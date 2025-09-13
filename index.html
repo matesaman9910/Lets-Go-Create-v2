@@ -4,72 +4,41 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Let’s Go Create V2 — Minecraft Server</title>
-  <meta name="description" content="Let’s Go Create V2 — a professionally run Minecraft server with a living legal system, trials, government, and economy. Live status, how to join, and modpack download." />
+  <meta name="description" content="Let’s Go Create V2 — a professionally run Minecraft server with a living legal system, trials, government, and economy. Live status, how to join, modpack download, and Discord." />
   <meta name="theme-color" content="#2ea043" />
   <style>
-    :root {
-      --bg: #0b0f14;
-      --panel: #0f1620;
-      --card: #121a25;
-      --border: #233142;
-      --fg: #e6edf3;
-      --muted: #a7b1bd;
-      --brand: #67e8f9;
-      --accent: #2ea043;
-      --accent-2: #8b5cf6;
-      --ok: #2ea043;
-      --warn: #bb8009;
-      --err: #f85149;
-      --shadow: 0 12px 40px rgba(0,0,0,.35);
-      --radius: 16px;
-    }
+    :root { --bg:#0b0f14; --panel:#0f1620; --card:#121a25; --border:#233142; --fg:#e6edf3; --muted:#a7b1bd; --brand:#67e8f9; --accent:#2ea043; --accent-2:#8b5cf6; --ok:#2ea043; --warn:#bb8009; --err:#f85149; --shadow:0 12px 40px rgba(0,0,0,.35); --radius:16px; }
     *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:radial-gradient(1200px 600px at 20% -10%,#0f1b2a 0%,transparent 60%),radial-gradient(1000px 600px at 120% 20%,#131f2f 0%,transparent 50%),var(--bg);color:var(--fg);font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"}
-    a{color:#8ab4ff;text-decoration:none}a:hover{text-decoration:underline}
+    html,body{margin:0;padding:0;background:radial-gradient(1200px 600px at 20% -10%,#0f1b2a 0%,transparent 60%),radial-gradient(1000px 600px at 120% 20%,#131f2f 0%,transparent 50%),var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    a{color:#8ab4ff;text-decoration:none} a:hover{text-decoration:underline}
     .wrap{max-width:1100px;margin:0 auto;padding:24px}
-
-    /* Header */
-    header{position:sticky;top:0;backdrop-filter: blur(8px);background:rgba(11,15,20,.6);border-bottom:1px solid rgba(255,255,255,.06);z-index:10}
+    header{position:sticky;top:0;backdrop-filter:blur(8px);background:rgba(11,15,20,.6);border-bottom:1px solid rgba(255,255,255,.06);z-index:10}
     .nav{display:flex;align-items:center;justify-content:space-between;gap:16px}
     .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px}
     .brand .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(130deg,var(--brand),#22d3ee);box-shadow:0 6px 20px rgba(103,232,249,.35)}
     .brand span{font-size:18px}
     .menu{display:flex;gap:14px;flex-wrap:wrap}
     .menu a{color:var(--muted);font-weight:600}
-
-    /* Hero */
-    .hero{display:grid;grid-template-columns: 1.2fr .8fr;gap:22px;align-items:stretch;margin-top:26px}
-    @media (max-width:900px){.hero{grid-template-columns:1fr}}
+    .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:22px;align-items:stretch;margin-top:26px}
+    @media(max-width:900px){.hero{grid-template-columns:1fr}}
     .hero .pitch{background:linear-gradient(180deg,rgba(103,232,249,.08),rgba(103,232,249,0));border:1px solid var(--border);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow)}
     .kicker{color:var(--brand);font-weight:800;letter-spacing:.2em;text-transform:uppercase;font-size:12px}
     h1{font-size:34px;margin:8px 0 10px 0}
     p.lead{color:var(--muted);font-size:16px;line-height:1.5}
     .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
-    .btn{display:inline-flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:linear-gradient(180deg,#0e151f,#0c121a);color:var(--fg);font-weight:700;box-shadow:var(--shadow)}
+    .btn{display:inline-flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:linear-gradient(180deg,#0e151f,#0c121a);color:var(--fg);font-weight:700;box-shadow:var(--shadow);cursor:pointer}
     .btn:hover{transform:translateY(-1px)}
     .btn.primary{background:linear-gradient(180deg,#193c2b,#13291e);border-color:#1f4d33}
     .btn .dot{width:8px;height:8px;border-radius:999px;background:var(--brand)}
-
-    /* Status Card */
     .status{background:linear-gradient(180deg,rgba(139,92,246,.08),rgba(139,92,246,0));border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
     .rows{display:grid;gap:12px}
     .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .label{color:var(--muted)}
-    .value{font-weight:800}
+    .label{color:var(--muted)} .value{font-weight:800}
     .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#0c121a;text-transform:uppercase;font-weight:800;font-size:12px;letter-spacing:.06em}
-    .badge.ok{color:var(--ok);border-color:rgba(46,160,67,.5)}
-    .badge.warn{color:var(--warn);border-color:rgba(187,128,9,.5)}
-    .badge.err{color:var(--err);border-color:rgba(248,81,73,.5)}
-    .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px dashed var(--border);border-radius:999px;color:var(--muted);font-weight:700}
-
-    /* Sections */
-    section{margin-top:38px}
-    h2{font-size:22px;margin:0 0 14px 0}
-    .grid{display:grid;grid-template-columns: repeat(3,1fr);gap:16px}
-    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+    .badge.ok{color:var(--ok);border-color:rgba(46,160,67,.5)} .badge.warn{color:var(--warn);border-color:rgba(187,128,9,.5)} .badge.err{color:var(--err);border-color:rgba(248,81,73,.5)}
+    section{margin-top:38px} h2{font-size:22px;margin:0 0 14px 0}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px} @media(max-width:900px){.grid{grid-template-columns:1fr}}
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
-
-    /* Footer */
     footer{margin-top:40px;border-top:1px solid var(--border);padding:22px 0;color:var(--muted);font-size:13px}
   </style>
 </head>
@@ -83,13 +52,13 @@
         <a href="#mods">Modpack</a>
         <a href="#about">About</a>
         <a href="#rules">Rules & Systems</a>
+        <a href="https://discord.gg/vGk4kKfQrj" target="_blank" rel="noopener">Discord</a>
         <a href="#faq">FAQ</a>
       </nav>
     </div>
   </header>
 
   <main class="wrap">
-    <!-- Hero -->
     <div class="hero" id="top">
       <div class="pitch">
         <div class="kicker">Let’s Go Create V2</div>
@@ -98,16 +67,13 @@
         <div class="cta">
           <button class="btn primary" id="copy-ip"><span class="dot"></span> Copy Server Address</button>
           <a class="btn" id="mods-link" href="https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA" target="_blank" rel="noopener">Download Modpack</a>
+          <a class="btn" href="https://discord.gg/vGk4kKfQrj" target="_blank" rel="noopener">Join Discord</a>
         </div>
-        <div style="margin-top:10px;color:var(--muted);font-size:13px">Address: <span class="chip" id="server-address">letsgocreatev2.join</span> · Port: <span class="chip">25565</span></div>
+        <div style="margin-top:10px;color:var(--muted);font-size:13px">Address: <span class="badge" id="server-address">known-resorts.gl.joinmc.link</span></div>
       </div>
 
-      <!-- Live Status Card -->
       <aside class="status" id="status">
-        <div class="row" style="margin-bottom:8px">
-          <span class="label">Server Status</span>
-          <span class="badge" id="state">checking…</span>
-        </div>
+        <div class="row" style="margin-bottom:8px"><span class="label">Server Status</span><span class="badge" id="state">checking…</span></div>
         <div class="rows">
           <div class="row"><span class="label">MOTD</span><span class="value" id="motd">—</span></div>
           <div class="row"><span class="label">Players</span><span class="value" id="players">—</span></div>
@@ -118,7 +84,6 @@
       </aside>
     </div>
 
-    <!-- Features / About -->
     <section id="about">
       <h2>What makes us different</h2>
       <div class="grid">
@@ -128,23 +93,19 @@
       </div>
     </section>
 
-    <!-- Join -->
     <section id="join">
       <h2>How to join</h2>
       <div class="grid">
         <div class="card"><strong>1) Download Mods</strong><br/>Get the modpack from the button above and import into your launcher (CurseForge/Prism/TL). </div>
-        <div class="card"><strong>2) Add Server</strong><br/>Use address <code id="addr-inline">letsgocreatev2.join:25565</code> and join the world.</div>
+        <div class="card"><strong>2) Add Server</strong><br/>Use address <code id="addr-inline">known-resorts.gl.joinmc.link</code> and join the world.</div>
         <div class="card"><strong>3) Read the Basics</strong><br/>Trials, petitions, and government are part of gameplay. Respect the systems and have fun.</div>
       </div>
     </section>
 
-    <!-- Modpack -->
     <section id="mods">
       <h2>Modpack</h2>
       <div class="grid">
-        <div class="card">
-          <strong>Required Mods</strong><br/>
-          Our modpack ensures compatibility with server features. Download from MEGA and import.
+        <div class="card"><strong>Required Mods</strong><br/>Our modpack ensures compatibility with server features. Download from MEGA and import.
           <div style="margin-top:8px"><a class="btn" href="https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA" target="_blank" rel="noopener">Open MEGA Folder</a></div>
         </div>
         <div class="card"><strong>Installation Tips</strong><br/>Use Java 17+, allocate 4–6 GB RAM, and keep mods and configs in sync with the pack.</div>
@@ -152,7 +113,6 @@
       </div>
     </section>
 
-    <!-- Rules & Systems -->
     <section id="rules">
       <h2>Rules & Systems</h2>
       <div class="grid">
@@ -163,17 +123,16 @@
       <div class="grid" style="margin-top:16px">
         <div class="card"><strong>Government & NDA</strong><br/>Employment terms, call-ups, armory access & confidentiality. <em>(Link your doc here)</em></div>
         <div class="card"><strong>Copyright</strong><br/>Ownership & usage policy for server systems. <em>(Link your doc here)</em></div>
-        <div class="card"><strong>More</strong><br/>Add anything else you’ve documented. </div>
+        <div class="card"><strong>More</strong><br/>Add anything else you’ve documented.</div>
       </div>
     </section>
 
-    <!-- FAQ -->
     <section id="faq">
       <h2>FAQ</h2>
       <div class="grid">
         <div class="card"><strong>Server shows Offline?</strong><br/>Refresh the list and try direct connect. If the site shows <em>offline</em>, the server may be rebooting.</div>
         <div class="card"><strong>Can I stream/record?</strong><br/>Yes, but respect trials and sealed NDA topics when applicable.</div>
-        <div class="card"><strong>Where’s the Discord?</strong><br/>Add your Discord invite link in the header or here.</div>
+        <div class="card"><strong>Where’s the Discord?</strong><br/>Use the **Join Discord** button above or the Discord item in the header.</div>
       </div>
     </section>
 
@@ -214,14 +173,13 @@
     const card      = document.getElementById('status');
     const serverAddr = document.getElementById('server-address');
 
-    // Copy button
-    document.getElementById('copy-ip').addEventListener('click', async () => {
-      const addr = `${serverAddr.textContent.trim()}:25565`;
-      try { await navigator.clipboard.writeText(addr); evtDone('Copied!'); } catch(e){ evtDone('Copy failed'); }
-      function evtDone(msg){
-        const old = event.target.textContent; event.target.textContent = msg; setTimeout(()=>event.target.textContent = old, 900);
-      }
+    // Copy IP button (uses the joinmc.link host exactly)
+    document.getElementById('copy-ip').addEventListener('click', async (e) => {
+      const addr = serverAddr.textContent.trim(); // no :25565 for playit/joinmc links
+      try { await navigator.clipboard.writeText(addr); flash(e.target, 'Copied!'); }
+      catch { flash(e.target, 'Copy failed'); }
     });
+    function flash(btn, txt){ const prev = btn.textContent; btn.textContent = txt; setTimeout(()=>btn.textContent = prev, 900); }
 
     function setStateBadge(state){
       const s = (state||'').toLowerCase();
@@ -234,7 +192,7 @@
     }
     function fmt(ts){ if(!ts) return '—'; const d=new Date(ts*1000); return d.toLocaleString(); }
 
-    // Live updates
+    // Live updates from Firebase
     onValue(ref(db, 'mc_status'), (snap)=>{
       const v = snap.val() || {};
       setStateBadge(v.state);

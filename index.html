@@ -3,292 +3,151 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Let’s Go Create v2 — Official Server</title>
-  <meta name="description" content="Official site for Let’s Go Create v2 (Minecraft 1.20.1 • Forge). Download the modpack, see server info, manual status, install guide, and mod list." />
-  <meta name="theme-color" content="#1095ff" />
+  <title>Let’s Go Create V2 — Server Status</title>
   <style>
-    :root{
-      --bg:#0e1116;--bg2:#11161d;--text:#e7edf3;--muted:#8ea0ad;--line:#1e2a36;--card:#10161e;--card2:#0f141b;--accent:#1095ff;--ok:#22c55e;--warn:#f59e0b;--alert:#ef4444;--info:#3b82f6;--r:12px;--r2:10px;--code:#0b2230;
+    :root {
+      --bg: #0e1117;
+      --fg: #e6edf3;
+      --muted: #9da9b5;
+      --card: #161b22;
+      --ok: #2ea04320;
+      --ok-border: #2ea043;
+      --warn: #bb800920;
+      --warn-border: #bb8009;
+      --err: #f8514920;
+      --err-border: #f85149;
+      --badge: #30363d;
+      --radius: 16px;
     }
-    html,body{height:100%}
-    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    a{color:var(--accent);text-decoration:none}
-    .container{max-width:1040px;margin:0 auto;padding:16px}
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; background: var(--bg); color: var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji; }
+    .container { max-width: 760px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-weight: 800; margin-bottom: 16px; letter-spacing: .3px; }
 
-    /* Header */
-    header{background:var(--bg2);border-bottom:1px solid var(--line)}
-    .nav{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0}
-    .brand{display:flex;align-items:center;gap:10px;white-space:nowrap}
-    .logo{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#19a7ff,#60c3ff)}
-    .brand h1{margin:0;font-size:15px;font-weight:800}
-    .ver{margin-left:4px;opacity:.6;font-weight:700}
-    .links{display:flex;gap:6px;flex-wrap:wrap}
-    .links a{color:var(--muted);padding:6px 8px;border-radius:8px}
-    .links a:hover{background:#131a22;color:var(--text)}
+    .card { background: var(--card); border: 1px solid #30363d; border-radius: var(--radius); padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .card.ok   { border-color: var(--ok-border);   box-shadow: 0 10px 30px var(--ok); }
+    .card.warn { border-color: var(--warn-border); box-shadow: 0 10px 30px var(--warn); }
+    .card.err  { border-color: var(--err-border);  box-shadow: 0 10px 30px var(--err); }
 
-    /* Cards & atoms */
-    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
-    .section{padding:14px}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--text);font-weight:700}
-    .btn.primary{background:linear-gradient(180deg,#19a7ff,#60c3ff);border:0;color:#031521}
-    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);border:1px solid var(--line);border-radius:8px;padding:3px 6px}
-    .muted{color:var(--muted)}
+    .row { display: flex; align-items: center; gap: 12px; margin: 10px 0; }
+    .label { width: 120px; color: var(--muted); }
+    .badge { background: var(--badge); border: 1px solid #30363d; padding: 4px 10px; border-radius: 999px; font-weight: 700; text-transform: uppercase; font-size: 12px; }
+    .badge.ok { border-color: var(--ok-border); color: #69d27d; }
+    .badge.warn { border-color: var(--warn-border); color: #ebb678; }
+    .badge.err { border-color: var(--err-border); color: #ff9b95; }
 
-    /* Hero grid (compact) */
-    .hero{margin-top:14px}
-    .heroGrid{display:grid;grid-template-columns:minmax(0, 1fr) 340px;gap:14px}
-    .eyebrow{color:var(--muted);font-size:12px}
-    .title{font-size:clamp(26px,3.2vw,40px);line-height:1.1;margin:6px 0 6px;font-weight:900}
-    .subtitle{color:var(--muted);margin:0 0 10px}
-
-    /* Manual status */
-    .status{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-weight:800}
-    .dot{width:9px;height:9px;border-radius:50%}
-    .st-normal{background:rgba(34,197,94,.16)}
-    .st-lockdown{background:rgba(239,68,68,.18)}
-    .st-maint{background:rgba(245,158,11,.18)}
-    .st-offline{background:rgba(59,130,246,.18)}
-    .st-whitelist{background:rgba(16,149,255,.16)}
-    .st-event{background:rgba(16,185,129,.18)}
-    .note{color:var(--muted);font-size:13px;margin-top:4px}
-
-    .cta{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-
-    .infoGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
-    .pill{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
-    .k{color:var(--muted);font-size:12px}
-    .v{font-weight:800;margin-top:2px}
-
-    /* Right sidebar fixed width */
-    aside h2{margin:0 0 8px}
-    .list{margin:0 0 0 16px;color:var(--muted);line-height:1.5}
-    .nowrap{white-space:nowrap}
-
-    /* Sections */
-    h2{margin:0 0 8px;font-size:20px}
-    .stack{display:grid;gap:12px;margin-top:12px}
-
-    /* Mods */
-    .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-    .search{flex:1;display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:7px 9px;background:var(--card2)}
-    .search input{flex:1;background:transparent;border:0;outline:0;color:var(--text)}
-    table{width:100%;border-collapse:separate;border-spacing:0}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
-    th{color:var(--muted)}
-    .tableWrap{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:10px}
-
-    footer{margin:18px 0 28px;color:var(--muted);font-size:13px}
-
-    @media (max-width: 980px){
-      .heroGrid{grid-template-columns:1fr}
-      aside{order:2}
-    }
+    .foot { margin-top: 12px; color: var(--muted); font-size: 12px; display:flex; justify-content: space-between; align-items:center; gap:8px; flex-wrap: wrap; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    a { color: #8ab4ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <header>
-    <div class="container nav">
-      <div class="brand"><div class="logo" aria-hidden="true"></div><h1>Let’s Go Create <span class="ver">v2</span></h1></div>
-      <nav class="links" aria-label="Primary">
-        <a href="#download">Download</a>
-        <a href="#mods">Mods</a>
-        <a href="#install">Install</a>
-        <a href="#faq">FAQ</a>
-        <a href="#contact">Contact</a>
-      </nav>
-    </div>
-  </header>
-
   <main class="container">
-    <!-- HERO -->
-    <section id="download" class="hero">
-      <div class="heroGrid">
-        <div class="card section">
-          <div class="eyebrow">Minecraft <strong style="margin-left:6px">1.20.1 • Forge</strong></div>
-          <h1 class="title">Industrial‑grade creativity, buttery performance.</h1>
-          <p class="subtitle">Official hub for <strong>Let’s Go Create v2</strong>. Download the pack, join with our IP, and read essential info.</p>
+    <h1>Let’s Go Create V2 — Server Status</h1>
 
-          <div id="status" class="status st-offline" aria-live="polite"><span class="dot" id="dot"></span><span id="label">Offline</span></div>
-          <div id="note" class="note"></div>
-
-          <div class="cta">
-            <a class="btn primary" href="https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA" target="_blank" rel="noopener">⬇️ Download Modpack (MEGA)</a>
-            <button class="btn" id="copy">📋 Copy Server IP</button>
-          </div>
-
-          <div class="infoGrid">
-            <div class="pill"><div class="k">Server IP</div><div class="v"><span class="kbd" id="ip">letsgocreatev2.join</span></div></div>
-            <div class="pill"><div class="k">Region</div><div class="v">EU (CZ)</div></div>
-            <div class="pill"><div class="k">Version</div><div class="v">1.20.1 (Forge)</div></div>
-            <div class="pill"><div class="k">Mode</div><div class="v" id="mode">—</div></div>
-          </div>
-        </div>
-
-        <aside class="card section">
-          <h2>What’s inside <span class="nowrap">v2</span></h2>
-          <ul class="list">
-            <li><strong>Create stack</strong> — factories, logistics, power & automation.</li>
-            <li><strong>Combat & security</strong> — TACZ, SecurityCraft, Big Cannons.</li>
-            <li><strong>QoL toolkit</strong> — JEI, JourneyMap, Polymorph, voice chat.</li>
-            <li><strong>Performance suite</strong> — ModernFix, Starlight, FerriteCore, Clumps, EntityCulling.</li>
-          </ul>
-          <details style="margin-top:8px"><summary>Status legend</summary>
-            <ul class="list">
-              <li>1 — Normal • open</li>
-              <li>2 — Lockdown • restricted</li>
-              <li>3 — Maintenance • updates</li>
-              <li>4 — Offline</li>
-              <li>5 — Whitelist Only</li>
-              <li>6 — Event Live</li>
-            </ul>
-          </details>
-        </aside>
+    <section class="card" id="status-card">
+      <div class="row">
+        <span class="label">Status:</span>
+        <span id="state" class="badge">Checking…</span>
+      </div>
+      <div class="row">
+        <span class="label">MOTD:</span>
+        <span id="motd">—</span>
+      </div>
+      <div class="row">
+        <span class="label">Players:</span>
+        <span id="players">—</span>
+      </div>
+      <div class="row">
+        <span class="label">Version:</span>
+        <span id="version">—</span>
+      </div>
+      <div class="row">
+        <span class="label">Ping:</span>
+        <span id="ping">—</span>
+      </div>
+      <div class="foot">
+        <span id="updated">Last updated: —</span>
+        <span class="mono">Path: /mc_status</span>
       </div>
     </section>
-
-    <!-- INSTALL -->
-    <section id="install" class="card section stack">
-      <h2>Install (Windows)</h2>
-      <ol id="steps" class="list"></ol>
-    </section>
-
-    <!-- MODS -->
-    <section id="mods" class="card section">
-      <h2>Mod list</h2>
-      <div class="toolbar">
-        <div class="search">🔎 <input id="q" placeholder="Search mods…" aria-label="Search mods" /></div>
-        <button class="btn" id="export">Export .txt</button>
-      </div>
-      <div class="tableWrap">
-        <table aria-label="Mod list">
-          <thead><tr><th style="width:40%">Name</th><th style="width:28%">Category</th><th>Purpose / notes</th></tr></thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- FAQ + CONTACT -->
-    <section id="faq" class="card section">
-      <h2>FAQ</h2>
-      <p><strong>Shaders?</strong> Allowed, but expect reduced FPS on low‑end GPUs.</p>
-      <p><strong>Voice chat?</strong> Yes — Simple Voice Chat.</p>
-      <p><strong>Whitelist?</strong> Only when  says “Whitelist Only”.</p>
-    </section>
-
-    <section id="contact" class="card section">
-      <h2>Contact</h2>
-      <p>Admin: matesaman9910 — <a href="mailto:matesaman9910@gmail.com">matesaman9910@gmail.com</a></p>
-    </section>
-
-    <footer class="section" style="border:none;background:transparent"><div class="muted">© <span id="year"></span> Let’s Go Create v2. All rights reserved.</div></footer>
   </main>
 
-  <script>
-    // ===== Settings (manual) =====
-    const SETTINGS = {
-      SERVER_IP:'letsgocreatev2.join',
-      STATUS:4, // 1=Normal, 2=Lockdown, 3=Maintenance, 4=Offline, 5=Whitelist, 6=Event
-      STATUS_MESSAGE:'',
-      INSTALL:[
-        'Install <strong>Java 17+</strong> (Temurin or Microsoft Build of OpenJDK).',
-        'Install <strong>PrismLauncher</strong> (recommended).',
-        'Create a new <strong>1.20.1 Forge</strong> instance and close it once.',
-        'Download the <strong>Full Modpack</strong> from MEGA and <em>Import</em> it (drag & drop).',
-        'Allocate <strong>4–6 GB RAM</strong>. Add the server <code>letsgocreatev2.join</code> in Multiplayer.'
-      ],
-      MODS:[
-        {name:'AdvancedPeripherals',cat:'Automation/Computers',note:'Peripherals for CC: Tweaked; automation & integration.'},
-        {name:'AI-Improvements',cat:'Performance',note:'Improves mob AI performance.'},
-        {name:'Almanac',cat:'Utility',note:'General gameplay/utility module.'},
-        {name:'Architectury',cat:'Library',note:'Cross‑loader API used by many mods.'},
-        {name:'Auroras',cat:'Visual',note:'Sky aurora visual effects.'},
-        {name:'Botarium',cat:'Library',note:'Team Resourceful core library.'},
-        {name:'CC: Tweaked',cat:'Automation/Computers',note:'Programmable computers & turtles.'},
-        {name:'Chunk Loaders',cat:'Utility/Server',note:'Keeps chunks loaded (admin approval required).'},
-        {name:'Chunky',cat:'Server/World',note:'Pregenerates chunks to reduce lag.'},
-        {name:'Cloth Config',cat:'Library/Config',note:'Config UI library.'},
-        {name:'Clumps',cat:'Performance/QoL',note:'Merges XP orbs to reduce entity load.'},
-        {name:'CoroUtil',cat:'Library',note:'Shared library dependency.'},
-        {name:'Create',cat:'Automation',note:'Kinetic machinery and factory automation.'},
-        {name:'Create: New Age',cat:'Tech/Power',note:'Create addon; power progression.'},
-        {name:'Create: Big Cannons',cat:'Combat/Tech',note:'Industrial artillery & engineering.'},
-        {name:'Create Enchantment Industry',cat:'Automation/Enchant',note:'Automates enchanting via Create.'},
-        {name:'Create Radar',cat:'Utility',note:'Radar addon for Create.'},
-        {name:'CreativeCore',cat:'Library',note:'Shared core library.'},
-        {name:'Cuffed',cat:'Moderation/Gameplay',note:'Handcuffs & restraint mechanics.'},
-        {name:'Curios',cat:'Library/API',note:'Trinket/curio slots API.'},
-        {name:'Discord Integration',cat:'Admin/Integration',note:'Links Minecraft chat with Discord.'},
-        {name:'Entity Culling',cat:'Performance',note:'Culls non‑visible entities for FPS gains.'},
-        {name:"Farmer's Delight",cat:'Content/Food',note:'Cooking & farming expansion.'},
-        {name:'FerriteCore',cat:'Performance',note:'Memory usage reductions.'},
-        {name:'Framework',cat:'Library',note:'Core framework dependency.'},
-        {name:'GeckoLib',cat:'Library/Anim',note:'Animation library for mobs/items.'},
-        {name:'GriefLogger',cat:'Admin/Logs',note:'Logs block interactions for moderation.'},
-        {name:'Infinity Buttons',cat:'Building/Redstone',note:'Extra buttons & variants.'},
-        {name:'JEI',cat:'QoL/Recipes',note:'Recipe & usage viewer.'},
-        {name:'JourneyMap',cat:'Map',note:'Minimap & world map.'},
-        {name:'Kotlin for Forge',cat:'Library',note:'Kotlin runtime for mods.'},
-        {name:"Lazr's Lib",cat:'Library',note:'Shared library dependency.'},
-        {name:'Let Me Despawn',cat:'Performance',note:'Smarter despawn to fight lag.'},
-        {name:"Lightman's Currency",cat:'Economy',note:'Shops, coins, ATMs, trading.'},
-        {name:'Meds & Herbs',cat:'Content/Medical',note:'Medical items & herbs.'},
-        {name:'ModernFix',cat:'Performance',note:'Massive performance & bug fixes.'},
-        {name:'Moonlight (Selene)',cat:'Library',note:'Core library by MehVahdJukaar.'},
-        {name:'Orva Alarms',cat:'Utility/Redstone',note:'Siren & alarm systems.'},
-        {name:'Patchouli',cat:'Library/Guide',note:'In‑game guidebook framework.'},
-        {name:'Polymorph',cat:'Utility',note:'Solves recipe conflicts with a chooser.'},
-        {name:'Pretty Rain',cat:'Visual',note:'Improved rain & ambience.'},
-        {name:'Reforged Play Mod',cat:'Gameplay/Weapons',note:'Adds weapons & mechanics.'},
-        {name:'Resourceful Config',cat:'Library/Config',note:'Resourceful config system.'},
-        {name:'Resourceful Lib',cat:'Library',note:'Core library (Resourceful).'},
-        {name:"Ritchie's Projectile Lib",cat:'Library',note:'Projectile library dependency.'},
-        {name:'SHW',cat:'Utility',note:'Gameplay utility module.'},
-        {name:'SimpleLogin',cat:'Security/Auth',note:'Password / login protection.'},
-        {name:'Sophisticated Backpacks',cat:'Storage',note:'Upgradeable backpacks.'},
-        {name:'Sophisticated Core',cat:'Library',note:'Core for Sophisticated series.'},
-        {name:'spark',cat:'Admin/Perf',note:'Profiler for TPS & memory.'},
-        {name:'Starlight',cat:'Performance',note:'Fast lighting engine.'},
-        {name:'Superb Warfare',cat:'Combat',note:'Warfare content & combat.'},
-        {name:'SuperMartijn642 Config Lib',cat:'Library/Config',note:'Config library.'},
-        {name:'SuperMartijn642 Core Lib',cat:'Library',note:'Core dependency.'},
-        {name:'TACZ',cat:'Combat/Guns',note:'Firearms & attachments.'},
-        {name:'Tempad',cat:'Utility/Teleport',note:'Teleportation gadget gameplay.'},
-        {name:'TerraFirmaCraft',cat:'Overhaul/Survival',note:'Hardcore survival overhaul.'},
-        {name:'Simple Voice Chat',cat:'Voice',note:'Proximity voice chat.'},
-        {name:'WATUT',cat:'Moderation/Utility',note:'Admin/utility tooling.'},
-        {name:'WorldEdit',cat:'Admin/World',note:'In‑game editing tools.'},
-        {name:'SecurityCraft',cat:'Security',note:'Defense blocks & protections.'}
-      ]
+  <script type="module">
+    // ——— Firebase web config (your values) ———
+    const firebaseConfig = {
+      apiKey: "AIzaSyArccJnD2qGe8ty503oBv0SQ772dUVEvbk",
+      authDomain: "letsgocreatev2.firebaseapp.com",
+      databaseURL: "https://letsgocreatev2-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "letsgocreatev2",
+      storageBucket: "letsgocreatev2.firebasestorage.app",
+      messagingSenderId: "226793735098",
+      appId: "1:226793735098:web:4f06f0d316d3cc62955383"
     };
 
-    // Runtime wiring
-    document.getElementById('year').textContent = new Date().getFullYear();
-    document.getElementById('ip').textContent = SETTINGS.SERVER_IP;
-    document.getElementById('copy').addEventListener('click', async ()=>{
-      try{await navigator.clipboard.writeText(SETTINGS.SERVER_IP);}catch(e){}
-      const b=document.getElementById('copy'); const t=b.textContent; b.textContent='✅ Copied'; setTimeout(()=>b.textContent=t,1000);
-    });
+    // Modular Firebase SDK (v9+) — import only what we need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-    // Install steps
-    document.getElementById('steps').innerHTML = SETTINGS.INSTALL.map((s,i)=>`<li>${i+1}. ${s}</li>`).join('');
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-    // Mods
-    const rows=document.getElementById('rows');
-    function render(mods){ rows.innerHTML = mods.map(m=>`<tr><td><strong>${m.name}</strong></td><td>${m.cat}</td><td class=\"muted\">${m.note||''}</td></tr>`).join(''); }
-    render(SETTINGS.MODS);
-    document.getElementById('q').addEventListener('input', e=>{
-      const q=e.target.value.toLowerCase();
-      render(SETTINGS.MODS.filter(m=>[m.name,m.cat,m.note].join(' ').toLowerCase().includes(q)));
-    });
-    document.getElementById('export').addEventListener('click', ()=>{
-      const text=SETTINGS.MODS.map(m=>`- ${m.name} [${m.cat}] — ${m.note||''}`).join('\n');
-      const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'})); a.download='LetsGoCreate-v2-modlist.txt'; a.click(); URL.revokeObjectURL(a.href);
-    });
+    // Bind elements
+    const elState   = document.getElementById("state");
+    const elMotd    = document.getElementById("motd");
+    const elPlayers = document.getElementById("players");
+    const elVersion = document.getElementById("version");
+    const elPing    = document.getElementById("ping");
+    const elUpdated = document.getElementById("updated");
+    const card      = document.getElementById("status-card");
 
-    // Manual status
-    const MAP={1:{cls:'st-normal',label:'Normal',msg:'Open to all players'},2:{cls:'st-lockdown',label:'Lockdown',msg:'Restricted / admins only'},3:{cls:'st-maint',label:'Maintenance',msg:'Updates in progress'},4:{cls:'st-offline',label:'Offline',msg:'Server is not running'},5:{cls:'st-whitelist',label:'Whitelist Only',msg:'Only approved players'},6:{cls:'st-event',label:'Event Live',msg:'Special event is live'}};
-    const cfg=MAP[SETTINGS.STATUS]||MAP[4];
-    const badge=document.getElementById('status'); badge.className=`status ${cfg.cls}`; document.getElementById('label').textContent=cfg.label; document.getElementById('note').textContent=SETTINGS.STATUS_MESSAGE||cfg.msg; document.getElementById('mode').textContent=cfg.label;
+    // Helpers
+    const fmtTime = (ts) => {
+      if (!ts) return "—";
+      const d = new Date(ts * 1000);
+      return d.toLocaleString();
+    };
+
+    function applyStateStyle(state) {
+      elState.textContent = state ?? "unknown";
+      elState.className = "badge"; // reset
+      card.className = "card";     // reset
+
+      switch ((state || "").toLowerCase()) {
+        case "online":
+          elState.classList.add("ok");
+          card.classList.add("ok");
+          break;
+        case "starting":
+        case "stopping":
+          elState.classList.add("warn");
+          card.classList.add("warn");
+          break;
+        case "offline":
+        default:
+          elState.classList.add("err");
+          card.classList.add("err");
+      }
+    }
+
+    // Live listener on /mc_status
+    onValue(ref(db, "mc_status"), (snap) => {
+      const v = snap.val() || {};
+      applyStateStyle(v.state);
+      elMotd.textContent = v.motd ?? "—";
+      const pOn = (v.players_online ?? "—");
+      const pMax = (v.players_max ?? "—");
+      elPlayers.textContent = `${pOn} / ${pMax}`;
+      elVersion.textContent = v.version ?? "—";
+      elPing.textContent = (v.ping_ms != null) ? `${v.ping_ms} ms` : "—";
+      elUpdated.textContent = `Last updated: ${fmtTime(v.last_updated)}`;
+    }, (err) => {
+      // If DB read fails, show offline-ish state
+      applyStateStyle("offline");
+      elMotd.textContent = "Error loading status";
+      console.error(err);
+    });
   </script>
 </body>
 </html>

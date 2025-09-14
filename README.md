@@ -2,7 +2,7 @@
 
 Welcome to the **Let’s Go Create v2** Minecraft modded server!
 This page hosts all the essential information, downloads, and updates for our community.
-[🔗Webiste Link🔗](https://matesaman9910.github.io/Lets-Go-Create-v2/)
+[🔗Website Link🔗](https://matesaman9910.github.io/Lets-Go-Create-v2/)
 
 ---
 

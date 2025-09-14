@@ -199,17 +199,13 @@
       appId: "1:226793735098:web:4f06f0d316d3cc62955383"
     };
 
-    import {
-      initializeApp
-    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import {
-      getDatabase, ref, onValue, get, update, set
-    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getDatabase, ref, onValue, get, update, set } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
     const app = initializeApp(firebaseConfig);
     const db  = getDatabase(app);
 
-    // --- Elements
+    // Elements
     const elState   = document.getElementById('state');
     const elMotd    = document.getElementById('motd');
     const elPlayers = document.getElementById('players');
@@ -232,24 +228,29 @@
     const pillCd   = document.getElementById('cooldown-pill');
     const toast    = document.getElementById('toast');
 
-    // --- Copy IP
+    // Copy IP
     btnCopy.addEventListener('click', async (e) => {
       try { await navigator.clipboard.writeText(serverAddr.textContent.trim()); flash(e.target, 'Copied!'); }
       catch { flash(e.target, 'Copy failed'); }
     });
     function flash(btn, txt){ const prev = btn.textContent; btn.textContent = txt; setTimeout(()=>btn.textContent = prev, 900); }
 
-    // --- Helpers
+    // Helpers
     const STALE_SECONDS = 60; // monitor considered OFF if older than this
     const REQUEST_COOLDOWN_MS = 5*60*1000;
 
     function isStale(ts){ return !ts || (Math.floor(Date.now()/1000) - ts) > STALE_SECONDS; }
     function stripMinecraftCodes(s){ if(!s) return '—'; return s.replace(/§[0-9A-FK-OR]/gi, ''); }
     function setBadge(label, cls){ elState.textContent = label; elState.className = 'badge ' + cls; card.className = 'status ' + cls; }
-    function mmss(ms){ const s=Math.max(0,Math.ceil(ms/1000)); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); return `${m}:${ss}`; }
+    function mmss(ms){
+      const total = Math.max(0, Math.floor(ms/1000));
+      const m = Math.floor(total/60);
+      const s = total % 60;
+      return `${m}:${String(s).padStart(2,'0')}`;
+    }
     function showToast(msg){ toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2600); }
 
-    // --- State badge
+    // State badge
     function setStateBadge(state, stale){
       const s = (state||'').toLowerCase();
       if (stale) { setBadge('OFF', 'err'); return; } // monitor OFF
@@ -259,7 +260,7 @@
       setBadge('LOADING', 'warn');
     }
 
-    // --- Overrides
+    // Overrides
     const OV_MAP = {
       Lockdown:      { label: 'LOCKDOWN',      cls: 'err',  desc: 'The server is currently under lockdown; no one can join.' },
       Maintenance:   { label: 'MAINTENANCE',   cls: 'warn', desc: 'Server is currently in maintenance mode. Please do not attempt to join.' },
@@ -283,7 +284,7 @@
       else { applyOverrideUI(null); }
     }
 
-    // --- Live listeners
+    // Live listeners (status + mc_status)
     let prevState = 'loading';
     const onlineSnd = document.getElementById('online-snd');
     let audioUnlocked = false; let lastSoundMs = 0;
@@ -293,9 +294,34 @@
     }, { once:true });
 
     let lastMcSnapshot = { state: 'loading', last_updated: 0 };
-    let unsubStatus = null, unsubMc = null;
+
+    // Cooldown tracking (smooth, per-second)
+    let cooldownUntil = Number(localStorage.getItem('lgc_cd_until') || 0);
+    let cdTimerId = null;
+    function cooldownRemaining(){ return Math.max(0, cooldownUntil - Date.now()); }
+    function startCooldownTicker(){
+      if (cdTimerId) return;
+      cdTimerId = setInterval(()=>{
+        const remaining = cooldownRemaining();
+        if (remaining <= 0){
+          clearInterval(cdTimerId); cdTimerId = null;
+          pillCd.style.display = 'none';
+          updateRequestButtonState();
+          return;
+        }
+        pillCd.style.display = 'inline-block';
+        pillCd.textContent = `Cooldown: ${mmss(remaining)}`;
+        updateRequestButtonState(false); // no recompute of pill text here
+      }, 1000);
+    }
+    if (cooldownRemaining() > 0) startCooldownTicker();
+
+    // Subscriptions
+    let unsubStatus = null, unsubMc = null, unsubCooldown = null;
     function attach(){
-      if (unsubStatus) unsubStatus(); if (unsubMc) unsubMc();
+      if (unsubStatus) unsubStatus();
+      if (unsubMc) unsubMc();
+      if (unsubCooldown) unsubCooldown();
 
       unsubStatus = onValue(ref(db,'Status'),
         (snap)=>{ recomputeOverride(snap.val()); updateRequestButtonState(); },
@@ -336,12 +362,29 @@
         },
         (e)=>console.error('mc_status listener error',e)
       );
+
+      // Smooth cooldown: subscribe (if allowed) and tick locally per second
+      unsubCooldown = onValue(ref(db,'Requests/_cooldowns/global'),
+        (snap)=>{
+          const v = snap.exists() ? Number(snap.val()) : 0;
+          if (!Number.isFinite(v)) return;
+          cooldownUntil = v;
+          localStorage.setItem('lgc_cd_until', String(cooldownUntil));
+          if (cooldownRemaining() > 0) startCooldownTicker();
+          updateRequestButtonState();
+        },
+        (e)=>{
+          // If read denied, keep local-only behavior
+          console.warn('Cooldown read denied; using localStorage only');
+        }
+      );
     }
     attach();
 
-    // Force re-attach occasionally
+    // Visibility / network
     document.addEventListener('visibilitychange', async ()=>{ if (document.visibilityState==='visible'){ attach(); await hardRefreshRead(); }});
     window.addEventListener('online', async ()=>{ attach(); await hardRefreshRead(); });
+
     async function hardRefreshRead(){
       try {
         const [s1, s2] = await Promise.all([ get(ref(db,'Status')), get(ref(db,'mc_status')) ]);
@@ -361,30 +404,18 @@
 
     setTimeout(()=>{ if (elState.textContent==='LOADING' && !overrideInfo) elNote.textContent='Current status is LOADING. If you see this over 5 seconds, refresh the page or contact us on Discord.'; }, 5000);
 
-    // --- Cooldown reading & button state
-    async function readCooldownMs(){
-      try {
-        const snap = await get(ref(db, 'Requests/_cooldowns/global'));
-        const until = snap.exists() ? Number(snap.val()) : 0;
-        const now = Date.now();
-        return Math.max(0, until - now);
-      } catch (e){
-        // Fallback to local cache if read blocked
-        const local = Number(localStorage.getItem('lgc_cd_until')||0);
-        return Math.max(0, local - Date.now());
-      }
-    }
-
-    async function updateRequestButtonState(){
-      const cooldown = await readCooldownMs().catch(()=>0);
+    // Button enable/disable uses local state only (no async fetch)
+    function updateRequestButtonState(updatePill=true){
+      const remaining = cooldownRemaining();
       const s = (lastMcSnapshot.state||'loading').toLowerCase();
       const stale = isStale(lastMcSnapshot.last_updated);
       const online = (!stale && s==='online');
-      const reason = online ? 'Server is already ONLINE' :
-                     (cooldown>0 ? `Cooldown ${mmss(cooldown)} left` :
-                     (overrideInfo ? `${ovLabel.textContent} active` : ''));
 
-      if (online || cooldown>0 || overrideInfo){
+      const reason = online ? 'Server is already ONLINE'
+                  : (remaining>0 ? `Cooldown ${mmss(remaining)} left`
+                  : (overrideInfo ? `${ovLabel.textContent} active` : ''));
+
+      if (online || remaining>0 || overrideInfo){
         btnReq.disabled = true;
         btnReq.title = reason || 'Unavailable';
       } else {
@@ -392,22 +423,23 @@
         btnReq.title = 'Notify admins to start the server';
       }
 
-      if (cooldown>0){
-        pillCd.style.display = 'inline-block';
-        pillCd.textContent = `Cooldown: ${mmss(cooldown)}`;
-      } else {
-        pillCd.style.display = 'none';
+      if (updatePill){
+        if (remaining>0){
+          pillCd.style.display = 'inline-block';
+          pillCd.textContent = `Cooldown: ${mmss(remaining)}`;
+        } else {
+          pillCd.style.display = 'none';
+        }
       }
     }
 
-    // --- Discord webhook (browser-safe)
-    const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1416728538853412874/qdQFEMcriYQIj0jfmZ4UhvnVgpUg9MzPYYmtnYgvznkGuOiDyvrDyhCCQxQWS83kKsHW";
+    // Discord webhook (browser-safe)
+    const DISCORD_WEBHOOK = "PUT_YOUR_DISCORD_WEBHOOK_URL_HERE";
     async function postDiscordWebhook(payload){
       try{
         const fd = new FormData();
         fd.append('payload_json', JSON.stringify(payload));
         await fetch(DISCORD_WEBHOOK, { method:'POST', mode:'no-cors', body: fd });
-        // no-cors: cannot verify response; assume best effort
         return true;
       }catch(e){
         console.error('Webhook send failed:', e);
@@ -415,15 +447,14 @@
       }
     }
 
-    // --- Request start flow
+    // Request start flow
     btnReq.addEventListener('click', async ()=>{
       btnReq.disabled = true;
       const now = Date.now();
 
-      // Check cooldown one more time
-      const cd = await readCooldownMs().catch(()=>0);
-      if (cd>0){
-        showToast(`Please wait ${mmss(cd)} before requesting again.`);
+      // Double-check local remaining
+      if (cooldownRemaining() > 0){
+        showToast(`Please wait ${mmss(cooldownRemaining())} before requesting again.`);
         updateRequestButtonState();
         return;
       }
@@ -440,27 +471,26 @@
       };
 
       try{
-        // Write start request
+        // Write the request
         await update(ref(db, 'Requests'), { start: payload });
 
-        // Try to set cooldown (if rules allow)
-        const until = now + REQUEST_COOLDOWN_MS;
-        try{
-          await set(ref(db, 'Requests/_cooldowns/global'), until);
-        }catch(e){
-          // If not permitted, at least block locally
-          localStorage.setItem('lgc_cd_until', String(until));
-        }
+        // Set cooldown target locally first; server rules may also set it
+        cooldownUntil = now + REQUEST_COOLDOWN_MS;
+        localStorage.setItem('lgc_cd_until', String(cooldownUntil));
+        startCooldownTicker();
+        updateRequestButtonState();
 
-        // Send Discord notification (best effort)
+        // Try writing global cooldown (if allowed)
+        try { await set(ref(db, 'Requests/_cooldowns/global'), cooldownUntil); } catch(e) { /* ignore */ }
+
+        // Send webhook
         const mc = lastMcSnapshot || {};
         const stale = isStale(mc.last_updated);
         const state = (mc.state||'unknown').toUpperCase();
-        const untilUnix = Math.floor(until/1000);
+        const untilUnix = Math.floor(cooldownUntil/1000);
         const fields = [
           `**From:** ${location.hostname}`,
           `**State (now):** ${stale ? 'OFF (monitor)' : state}`,
-          `**IP (client):** (browser hidden)`,
           `**UA:** ${payload.ua.substring(0,140)}…`,
           `**Page:** ${location.href}`,
           `**Cooldown ends:** <t:${untilUnix}:R>`
@@ -484,9 +514,8 @@
       }
     });
 
-    // Kick initial state for request button
+    // Kick initial UI
     updateRequestButtonState();
-    setInterval(updateRequestButtonState, 5000);
   </script>
 </body>
 </html>

@@ -7,28 +7,6 @@
   <meta name="description" content="Let’s Go Create V2 — live status, how to join, modpack download, and Discord." />
   <meta name="theme-color" content="#2ea043" />
   <meta http-equiv="Cache-Control" content="no-store" />
-  <!--
-    Firebase data shape:
-    {
-      "Status": { "Lockdown":false, "Maintenance":false, "WhitelistOnly":false, "EventLive":false, "Emergency":false },
-      "mc_status": { "state":"online|offline|starting|stopping", "last_updated": 0, "players_online":0, "players_max":0, "version":"1.20.1", "ping_ms":0, "motd":"§a..." },
-      "requests": { "start": { "last": 0, "by":"", "ua":"" } }
-    }
-
-    >>> If you want HARD enforcement of cooldown across all clients, add this
-    >>> Realtime Database rule (edit to fit your ruleset):
-    rules: {
-      "requests": {
-        "start": {
-          ".read": false,
-          ".write": true,
-          "last": {
-            ".validate": "newData.isNumber() && (!data.exists() || now - data.val() >= 300000)"
-          }
-        }
-      }
-    }
-  -->
   <style>
     :root { --bg:#0b0f14; --panel:#0f1620; --card:#121a25; --border:#233142; --fg:#e6edf3; --muted:#a7b1bd; --brand:#67e8f9; --accent:#2ea043; --accent-2:#8b5cf6; --ok:#2ea043; --warn:#bb8009; --err:#f85149; --shadow:0 12px 40px rgba(0,0,0,.35); --radius:16px; }
     *{box-sizing:border-box}
@@ -50,10 +28,10 @@
     p.lead{color:var(--muted);font-size:16px;line-height:1.5}
     .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
     .btn{display:inline-flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:linear-gradient(180deg,#0e151f,#0c121a);color:var(--fg);font-weight:700;box-shadow:var(--shadow);cursor:pointer}
+    .btn[disabled]{opacity:.5;cursor:not-allowed;filter:grayscale(100%)}
     .btn:hover{transform:translateY(-1px)}
     .btn.primary{background:linear-gradient(180deg,#193c2b,#13291e);border-color:#1f4d33}
     .btn .dot{width:8px;height:8px;border-radius:999px;background:var(--brand)}
-    .btn.disabled{opacity:.5;pointer-events:none;filter:grayscale(1)}
     .status{background:linear-gradient(180deg,rgba(139,92,246,.08),rgba(139,92,246,0));border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
     .rows{display:grid;gap:12px}
     .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -65,8 +43,6 @@
     .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px} @media(max-width:900px){.grid{grid-template-columns:1fr}}
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
     footer{margin-top:40px;border-top:1px solid var(--border);padding:22px 0;color:var(--muted);font-size:13px}
-
-    /* Override banner */
     .override{position:sticky;top:56px;z-index:20;margin:12px 0;padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:#111827;display:none;align-items:center;gap:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;box-shadow:var(--shadow)}
     .override.show{display:flex}
     .override.ok{border-color:rgba(46,160,67,.5)}
@@ -79,6 +55,7 @@
     .override .desc{font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
     .error-big{position:sticky;top:56px;z-index:25;margin:12px 0;padding:14px 16px;border-radius:12px;border:2px dashed rgba(248,81,73,.6);background:#1a0f12;color:#ffd2d2;font-weight:900;display:none}
     .error-big.show{display:block}
+    .mini{font-size:12px;color:var(--muted)}
   </style>
 </head>
 <body>
@@ -110,8 +87,10 @@
           <button class="btn primary" id="copy-ip"><span class="dot"></span> Copy Server Address</button>
           <a class="btn" id="mods-link" href="https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA" target="_blank" rel="noopener">Download Modpack</a>
           <a class="btn" href="https://discord.gg/vGk4kKfQrj" target="_blank" rel="noopener">Join Discord</a>
-          <button class="btn" id="request-start" title="Ask admins to start the server">Request Server Start</button>
+          <!-- New: Request Start -->
+          <button class="btn" id="btn-request-start" title="Ask an admin to start the server (cooldown 5 min)">Request Server Start</button>
         </div>
+        <div class="mini" id="cooldown-msg" style="margin-top:8px;"></div>
         <div style="margin-top:10px;color:var(--muted);font-size:13px">Address: <span class="badge" id="server-address">known-resorts.gl.joinmc.link</span></div>
       </div>
 
@@ -175,7 +154,7 @@
       <h2>FAQ</h2>
       <div class="grid">
         <div class="card"><strong>Server shows OFFLINE?</strong><br/>Refresh the list and try direct connect. If the site shows <em>OFFLINE</em>, the server may be rebooting.</div>
-        <div class="card"><strong>Server shows OFF?</strong><br/>That means the monitor is not updating (PC not running). Server is likely fully off.</div>
+        <div class="card"><strong>Server shows OFF?</strong><br/>That means the monitor is not updating (PC not running). Server is likely fully OFF.</div>
         <div class="card"><strong>Can I stream/record?</strong><br/>Yes, but respect trials and sealed NDA topics when applicable.</div>
       </div>
     </section>
@@ -203,11 +182,8 @@
       appId: "1:226793735098:web:4f06f0d316d3cc62955383"
     };
 
-    // ======= CONFIGURE YOUR DISCORD WEBHOOK HERE =======
-    const WEBHOOK_URL = 'https://discord.com/api/webhooks/1416728538853412874/qdQFEMcriYQIj0jfmZ4UhvnVgpUg9MzPYYmtnYgvznkGuOiDyvrDyhCCQxQWS83kKsHW';
-    // Nice try! The Discord webhook is secured and rate-limited. Spamming won’t work.
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getDatabase, ref, onValue, get, update, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+    import { getDatabase, ref, onValue, get, push, serverTimestamp, set } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
     const app = initializeApp(firebaseConfig);
     const db  = getDatabase(app);
@@ -223,26 +199,9 @@
     const card      = document.getElementById('status');
     const serverAddr = document.getElementById('server-address');
     const addrInline = document.getElementById('addr-inline');
+    const btnReq    = document.getElementById('btn-request-start');
+    const msgCd     = document.getElementById('cooldown-msg');
     if (addrInline) addrInline.textContent = serverAddr.textContent;
-
-    // Request Start button & cooldown (enforced by Firebase rule + UI)
-    const reqBtn = document.getElementById('request-start');
-    const REQ_PATH = 'requests/start'; // { last: <server ts>, by, ua }
-    const COOLDOWN_MS = 5 * 60 * 1000;
-    let lastReqTs = 0; // from server
-    let serverOffsetMs = 0; // from /.info/serverTimeOffset
-
-    // Observe server time offset for accurate countdown
-    onValue(ref(db, '/.info/serverTimeOffset'), (snap)=>{
-      const v = snap.val();
-      if (typeof v === 'number') serverOffsetMs = v;
-    });
-
-    // Observe last request
-    onValue(ref(db, REQ_PATH + '/last'), (snap)=>{
-      lastReqTs = snap.val() || 0;
-      updateRequestButton(elState.textContent);
-    });
 
     // Override banner
     const ovBanner = document.getElementById('override-banner');
@@ -258,31 +217,31 @@
     function flash(btn, txt){ const prev = btn.textContent; btn.textContent = txt; setTimeout(()=>btn.textContent = prev, 900); }
 
     // Helpers
-    const STALE_SECONDS = 60; // monitor considered OFF if older than this
-    function isStale(ts){ return !ts || (Math.floor((Date.now()+serverOffsetMs)/1000) - ts) > STALE_SECONDS; }
+    const COOLDOWN_MS = 5 * 60 * 1000;
+    const STALE_SECONDS = 60;
+    function isStale(ts){ return !ts || (Math.floor(Date.now()/1000) - ts) > STALE_SECONDS; }
     function stripMinecraftCodes(s){ if(!s) return '—'; return s.replace(/§[0-9A-FK-OR]/gi, ''); }
     function setBadge(label, cls){ elState.textContent = label; elState.className = 'badge ' + cls; card.className = 'status ' + cls; }
 
     function setStateBadge(state, stale){
       const s = (state||'').toLowerCase();
-      if (stale) { setBadge('OFF', 'err'); return; } // monitor OFF
+      if (stale) { setBadge('OFF', 'err'); return; }
       if (s === 'online') { setBadge('ONLINE', 'ok'); return; }
       if (s === 'starting' || s === 'stopping') { setBadge('STARTING/STOPPING', 'warn'); return; }
-      if (s === 'offline') { setBadge('OFFLINE', 'err'); return; } // server offline, monitor alive
+      if (s === 'offline') { setBadge('OFFLINE', 'err'); return; }
       setBadge('LOADING', 'warn');
     }
 
-    // Override map & truthiness helper
+    // Overrides
     const OV_MAP = {
       Lockdown:      { label: 'LOCKDOWN',      cls: 'err',  desc: 'The server is currently under lockdown; no one can join.' },
       Maintenance:   { label: 'MAINTENANCE',   cls: 'warn', desc: 'Server is currently in maintenance mode. Please do not attempt to join.' },
-      WhitelistOnly: { label: 'WHITELIST ONLY',cls: 'warn', desc: 'Partial lockdown; only verified players may join' },
+      WhitelistOnly: { label: 'WHITELIST ONLY',cls: 'warn', desc: 'Partial lockdown; only verified players may join.' },
       EventLive:     { label: 'EVENT LIVE',     cls: 'ok',   desc: 'An event is currently in progress. Please check Discord for more details.' },
-      Emergency:     { label: 'EMERGENCY',      cls: 'err',  desc: 'ALERT: SERVER EMERGENCY - Check Discord' }
+      Emergency:     { label: 'EMERGENCY',      cls: 'err',  desc: 'ALERT: SERVER EMERGENCY — Check Discord.' }
     };
     const isTrue = (v)=> v === true || v === 'true' || v === 1 || v === '1';
 
-    // Audio
     const onlineSnd = document.getElementById('online-snd');
     let audioUnlocked = false; let lastSoundMs = 0; let prevState = 'loading';
     addEventListener('click', () => {
@@ -290,133 +249,118 @@
       onlineSnd.play().then(() => { onlineSnd.pause(); onlineSnd.currentTime = 0; audioUnlocked = true; }).catch(()=>{});
     }, { once:true });
 
-    let overrideInfo = null; // currently applied override
+    let overrideInfo = null;
     function applyOverrideUI(m){
       if (!m) { ovBanner.classList.remove('show','ok','warn','err'); ovError.classList.remove('show'); overrideInfo = null; return; }
       ovLabel.textContent = m.label; ovDesc.textContent = m.desc; ovBanner.className = 'override show ' + m.cls; overrideInfo = m;
       setBadge(m.label, m.cls); elNote.textContent = m.desc;
     }
-
     function recomputeOverride(raw){
       const active = Object.entries(raw||{}).filter(([k,v])=> isTrue(v)).map(([k])=>k);
       if (active.length > 1) { ovError.classList.add('show'); applyOverrideUI({ label:'STATUS ERROR', cls:'err', desc:'Multiple overrides enabled' }); return; }
       ovError.classList.remove('show');
       if (active.length === 1) { const key = active[0]; applyOverrideUI(OV_MAP[key] || { label:key.toUpperCase(), cls:'warn', desc:'Special mode active.' }); }
       else { applyOverrideUI(null); }
+      updateRequestButtonState(); // in case overrides should disable the button
     }
 
-    // ===== Request Start button logic =====
-    const anonId = (()=>{
-      const k='lgc_anon_id'; let v = localStorage.getItem(k);
-      if(!v){ v = 'u-' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem(k,v); }
-      return v;
-    })();
+    // Live listeners
+    onValue(ref(db,'Status'), (snap)=>{ recomputeOverride(snap.val()); });
+    let lastReqTs = 0;
+    onValue(ref(db,'requests/meta/last_request_ts'), (snap)=>{
+      lastReqTs = snap.val() || 0;
+      updateRequestButtonState();
+      tickCooldown();
+    });
+    let currState = 'loading', staleNow = false;
+    onValue(ref(db,'mc_status'), (snap)=>{
+      const v = snap.val()||{};
+      currState = (v.state||'loading').toLowerCase();
+      staleNow = isStale(v.last_updated);
+      setStateBadge(currState, staleNow);
 
-    function cooldownLeftMs(){
-      const now = Date.now() + serverOffsetMs;
-      const left = (lastReqTs||0) + COOLDOWN_MS - now;
+      elMotd.textContent = stripMinecraftCodes(v.motd);
+      elPlayers.textContent = `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
+      elVersion.textContent = v.version ?? '—';
+      elPing.textContent = (v.ping_ms!=null)? `${v.ping_ms} ms` : '—';
+      elUpdated.textContent = v.last_updated? new Date(v.last_updated*1000).toLocaleString() : '—';
+
+      if (!overrideInfo) {
+        if (staleNow) elNote.textContent = 'Server is fully OFF — this server is not 24/7.';
+        else if (currState==='online') elNote.textContent = 'Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.';
+        else if (currState==='offline') elNote.textContent = 'Server is OFFLINE (system alive) — could be maintenance, backups, a restart or other.';
+        else if (currState==='starting' || currState==='stopping') elNote.textContent = 'Status: STARTING/STOPPING — please wait, this can take some time.';
+        else elNote.textContent = 'Current status is LOADING. If you see this for over 5 seconds, refresh or check Discord.';
+      }
+
+      // Sound on transition to ONLINE
+      if (!overrideInfo && !staleNow && prevState!=='online' && currState==='online' && audioUnlocked) {
+        const nowMs=Date.now(); if (nowMs-lastSoundMs>15000){ try{ onlineSnd.currentTime=0; onlineSnd.play(); lastSoundMs=nowMs; }catch(e){} }
+      }
+      prevState = currState;
+      updateRequestButtonState();
+    });
+
+    // Request button logic + cooldown UI
+    function timeLeftMs(){
+      if (!lastReqTs) return 0;
+      const left = (lastReqTs + COOLDOWN_MS) - Date.now();
       return Math.max(0, left);
     }
-    function fmtMs(ms){ const s = Math.ceil(ms/1000); const m = Math.floor(s/60); const r=s%60; return m?`${m}m ${r}s`:`${r}s`; }
-    function setReqDisabled(disabled, tip=''){
-      if (!reqBtn) return;
-      if (disabled){ reqBtn.classList.add('disabled'); reqBtn.title = tip || 'Disabled'; }
-      else { reqBtn.classList.remove('disabled'); reqBtn.title=''; }
+    function updateRequestButtonState(){
+      if (!btnReq) return;
+      // Disable when ONLINE, or when override present, or cooldown active
+      const cooldownActive = timeLeftMs() > 0;
+      const hasOverride = !!overrideInfo;
+      const disable = (currState === 'online') || cooldownActive || hasOverride;
+      btnReq.disabled = disable;
+      if (currState === 'online') btnReq.textContent = 'Server Online';
+      else if (hasOverride) btnReq.textContent = overrideInfo.label;
+      else if (cooldownActive) btnReq.textContent = 'Requested — wait…';
+      else btnReq.textContent = 'Request Server Start';
     }
-    function updateRequestButton(state){
-      if (!reqBtn) return;
-      const s = (state||'').toLowerCase();
-      const left = cooldownLeftMs();
-      if (s === 'online'){ reqBtn.textContent = 'Request Server Start'; setReqDisabled(true,'Server is already ONLINE'); return; }
-      if (left>0){ reqBtn.textContent = `Please wait (${fmtMs(left)})`; setReqDisabled(true,'Cooldown active'); return; }
-      reqBtn.textContent = 'Request Server Start'; setReqDisabled(false);
+    function formatLeft(ms){
+      const s = Math.ceil(ms/1000), m = Math.floor(s/60), ss = s%60;
+      return `${m}:${String(ss).padStart(2,'0')}`;
     }
-
-    // Live countdown while in cooldown
-    setInterval(()=>{
-      const left = cooldownLeftMs();
-      if (left>0){ reqBtn.textContent = `Please wait (${fmtMs(left)})`; setReqDisabled(true,'Cooldown active'); }
-    }, 1000);
-
-    async function sendWebhook(kind, extra){
-      if (!WEBHOOK_URL || WEBHOOK_URL.includes('REPLACE_ME')) return;
-      const content = `🟢 **Server start requested**\nUser: ${anonId}\nAddress: ${serverAddr.textContent.trim()}\nState: ${elState.textContent}\nUA: ${navigator.userAgent}`;
-      try{
-        await fetch(WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ content }) });
-      }catch(e){ console.error('Webhook failed', e); }
+    function tickCooldown(){
+      if (!msgCd) return;
+      const left = timeLeftMs();
+      if (left>0){
+        msgCd.textContent = `A start request was sent. You can request again in ${formatLeft(left)}.`;
+      }else{
+        msgCd.textContent = '';
+      }
     }
+    setInterval(tickCooldown, 1000);
 
-    if (reqBtn){
-      reqBtn.addEventListener('click', async ()=>{
-        if (reqBtn.classList.contains('disabled')) return;
-        reqBtn.textContent = 'Sending…'; setReqDisabled(true);
+    if (btnReq){
+      btnReq.addEventListener('click', async ()=>{
+        // Double-check cooldown just before writing
+        const metaSnap = await get(ref(db,'requests/meta/last_request_ts'));
+        const last = metaSnap.val() || 0;
+        if (Date.now() - last < COOLDOWN_MS){
+          updateRequestButtonState();
+          return;
+        }
         try{
-          // Try to set requests/start/last to server timestamp, with metadata.
-          await update(ref(db, REQ_PATH), { last: serverTimestamp(), by: anonId, ua: navigator.userAgent });
-          await sendWebhook('request_start', { addr: serverAddr.textContent.trim() });
-          // Update local view immediately; server onValue will correct with true server ts.
-          lastReqTs = Date.now() + serverOffsetMs;
-          reqBtn.textContent = 'Request Sent — please wait';
+          btnReq.disabled = true;
+          btnReq.textContent = 'Sending…';
+          // Push to queue so each request is its own entry
+          await push(ref(db, 'requests/startQueue'), {
+            ts: serverTimestamp(),
+            ua: navigator.userAgent,
+            note: 'website_button'
+          });
+          btnReq.textContent = 'Requested — wait…';
         }catch(e){
-          console.error('Request start failed', e);
-          // If rules blocked (cooldown), compute remaining from server value on next onValue.
-          reqBtn.textContent = 'Request failed';
-          setTimeout(()=> updateRequestButton(elState.textContent), 1200);
+          console.error('Request failed', e);
+          btnReq.disabled = false;
+          btnReq.textContent = 'Request Server Start';
+          alert('Request failed. Please try again later.');
         }
       });
     }
-
-    // Attach listeners (and allow re-attach on resume/online)
-    let unsubStatus = null, unsubMc = null;
-    function attach(){
-      if (unsubStatus) unsubStatus(); if (unsubMc) unsubMc();
-      unsubStatus = onValue(ref(db,'Status'), (snap)=>{ recomputeOverride(snap.val()); }, (e)=>console.error('Status listener error', e));
-      unsubMc = onValue(ref(db,'mc_status'), (snap)=>{ const v=snap.val()||{}; const stale=isStale(v.last_updated); const state=(v.state||'loading').toLowerCase();
-        // Update fields
-        elMotd.textContent = stripMinecraftCodes(v.motd);
-        elPlayers.textContent = `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
-        elVersion.textContent = v.version ?? '—';
-        elPing.textContent = (v.ping_ms!=null)? `${v.ping_ms} ms` : '—';
-        elUpdated.textContent = v.last_updated? new Date(v.last_updated*1000).toLocaleString() : '—';
-        if (!overrideInfo) {
-          setStateBadge(state, stale);
-          if (stale) { elNote.textContent = 'Server is fully OFF — this server is not 24/7.'; }
-          else if (state==='online') { elNote.textContent = 'Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.'; }
-          else if (state==='offline') { elNote.textContent = 'Server is OFFLINE (system alive) — could be maintenance, backups, a restart or other.'; }
-          else if (state==='starting' || state==='stopping') { elNote.textContent = 'Status: STARTING/STOPPING — please wait, this can take some time.'; }
-          else { elNote.textContent = 'Current status is LOADING. If you see this for over 5 seconds, refresh or check Discord.'; }
-        }
-        // Sound on transition to ONLINE (only when not overridden and not stale)
-        if (!overrideInfo && !stale && prevState!=='online' && state==='online' && audioUnlocked) {
-          const nowMs=Date.now(); if (nowMs-lastSoundMs>15000){ try{ onlineSnd.currentTime=0; onlineSnd.play(); lastSoundMs=nowMs; }catch(e){} }
-        }
-        prevState = state;
-        updateRequestButton(state);
-      }, (e)=>console.error('mc_status listener error',e));
-    }
-
-    attach();
-
-    // Background → foreground or network back online: force a refresh read (keeps live feel)
-    document.addEventListener('visibilitychange', async ()=>{ if (document.visibilityState==='visible'){ attach(); await hardRefreshRead(); }});
-    window.addEventListener('online', async ()=>{ attach(); await hardRefreshRead(); });
-
-    // Periodic hard refresh (poll) in case WebSocket drops silently
-    async function hardRefreshRead(){
-      try {
-        const [s1, s2] = await Promise.all([ get(ref(db,'Status')), get(ref(db,'mc_status')) ]);
-        recomputeOverride(s1.val());
-        const v=s2.val()||{}; const stale=isStale(v.last_updated); const state=(v.state||'loading').toLowerCase();
-        elMotd.textContent = stripMinecraftCodes(v.motd);
-        elPlayers.textContent = `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
-        elVersion.textContent = v.version ?? '—';
-        elPing.textContent = (v.ping_ms!=null)? `${v.ping_ms} ms` : '—';
-        elUpdated.textContent = v.last_updated? new Date(v.last_updated*1000).toLocaleString() : '—';
-        if (!overrideInfo) setStateBadge(state, stale);
-        updateRequestButton(state);
-      } catch(e){ console.error('Hard refresh failed', e); }
-    }
-    setInterval(hardRefreshRead, 20000); // every 20s
 
     // Loading reminder
     setTimeout(()=>{ if (elState.textContent==='LOADING' && !overrideInfo) elNote.textContent='Current status is LOADING. If you see this over 5 seconds, refresh the page or contact us on Discord.'; }, 5000);

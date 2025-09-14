@@ -11,7 +11,22 @@
     Firebase data shape:
     {
       "Status": { "Lockdown":false, "Maintenance":false, "WhitelistOnly":false, "EventLive":false, "Emergency":false },
-      "mc_status": { "state":"online|offline|starting|stopping", "last_updated": 0, "players_online":0, "players_max":0, "version":"1.20.1", "ping_ms":0, "motd":"§a..." }
+      "mc_status": { "state":"online|offline|starting|stopping", "last_updated": 0, "players_online":0, "players_max":0, "version":"1.20.1", "ping_ms":0, "motd":"§a..." },
+      "requests": { "start": { "last": 0, "by":"", "ua":"" } }
+    }
+
+    >>> If you want HARD enforcement of cooldown across all clients, add this
+    >>> Realtime Database rule (edit to fit your ruleset):
+    rules: {
+      "requests": {
+        "start": {
+          ".read": false,
+          ".write": true,
+          "last": {
+            ".validate": "newData.isNumber() && (!data.exists() || now - data.val() >= 300000)"
+          }
+        }
+      }
     }
   -->
   <style>
@@ -38,6 +53,7 @@
     .btn:hover{transform:translateY(-1px)}
     .btn.primary{background:linear-gradient(180deg,#193c2b,#13291e);border-color:#1f4d33}
     .btn .dot{width:8px;height:8px;border-radius:999px;background:var(--brand)}
+    .btn.disabled{opacity:.5;pointer-events:none;filter:grayscale(1)}
     .status{background:linear-gradient(180deg,rgba(139,92,246,.08),rgba(139,92,246,0));border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
     .rows{display:grid;gap:12px}
     .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -94,6 +110,7 @@
           <button class="btn primary" id="copy-ip"><span class="dot"></span> Copy Server Address</button>
           <a class="btn" id="mods-link" href="https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA" target="_blank" rel="noopener">Download Modpack</a>
           <a class="btn" href="https://discord.gg/vGk4kKfQrj" target="_blank" rel="noopener">Join Discord</a>
+          <button class="btn" id="request-start" title="Ask admins to start the server">Request Server Start</button>
         </div>
         <div style="margin-top:10px;color:var(--muted);font-size:13px">Address: <span class="badge" id="server-address">known-resorts.gl.joinmc.link</span></div>
       </div>
@@ -186,8 +203,12 @@
       appId: "1:226793735098:web:4f06f0d316d3cc62955383"
     };
 
+    // ======= CONFIGURE YOUR DISCORD WEBHOOK HERE =======
+    // You can rotate this at any time. For fully hidden secrets, use a serverless proxy.
+    const WEBHOOK_URL = 'https://discord.com/api/webhooks/REPLACE_ME';
+
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getDatabase, ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+    import { getDatabase, ref, onValue, get, update, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
     const app = initializeApp(firebaseConfig);
     const db  = getDatabase(app);
@@ -205,6 +226,25 @@
     const addrInline = document.getElementById('addr-inline');
     if (addrInline) addrInline.textContent = serverAddr.textContent;
 
+    // Request Start button & cooldown (enforced by Firebase rule + UI)
+    const reqBtn = document.getElementById('request-start');
+    const REQ_PATH = 'requests/start'; // { last: <server ts>, by, ua }
+    const COOLDOWN_MS = 5 * 60 * 1000;
+    let lastReqTs = 0; // from server
+    let serverOffsetMs = 0; // from /.info/serverTimeOffset
+
+    // Observe server time offset for accurate countdown
+    onValue(ref(db, '/.info/serverTimeOffset'), (snap)=>{
+      const v = snap.val();
+      if (typeof v === 'number') serverOffsetMs = v;
+    });
+
+    // Observe last request
+    onValue(ref(db, REQ_PATH + '/last'), (snap)=>{
+      lastReqTs = snap.val() || 0;
+      updateRequestButton(elState.textContent);
+    });
+
     // Override banner
     const ovBanner = document.getElementById('override-banner');
     const ovLabel  = document.getElementById('override-label');
@@ -220,7 +260,7 @@
 
     // Helpers
     const STALE_SECONDS = 60; // monitor considered OFF if older than this
-    function isStale(ts){ return !ts || (Math.floor(Date.now()/1000) - ts) > STALE_SECONDS; }
+    function isStale(ts){ return !ts || (Math.floor((Date.now()+serverOffsetMs)/1000) - ts) > STALE_SECONDS; }
     function stripMinecraftCodes(s){ if(!s) return '—'; return s.replace(/§[0-9A-FK-OR]/gi, ''); }
     function setBadge(label, cls){ elState.textContent = label; elState.className = 'badge ' + cls; card.className = 'status ' + cls; }
 
@@ -259,18 +299,79 @@
     }
 
     function recomputeOverride(raw){
-      const active = Object.entries(raw||{}) .filter(([k,v])=> isTrue(v)).map(([k])=>k);
+      const active = Object.entries(raw||{}).filter(([k,v])=> isTrue(v)).map(([k])=>k);
       if (active.length > 1) { ovError.classList.add('show'); applyOverrideUI({ label:'STATUS ERROR', cls:'err', desc:'Multiple overrides enabled' }); return; }
       ovError.classList.remove('show');
       if (active.length === 1) { const key = active[0]; applyOverrideUI(OV_MAP[key] || { label:key.toUpperCase(), cls:'warn', desc:'Special mode active.' }); }
       else { applyOverrideUI(null); }
     }
 
+    // ===== Request Start button logic =====
+    const anonId = (()=>{
+      const k='lgc_anon_id'; let v = localStorage.getItem(k);
+      if(!v){ v = 'u-' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem(k,v); }
+      return v;
+    })();
+
+    function cooldownLeftMs(){
+      const now = Date.now() + serverOffsetMs;
+      const left = (lastReqTs||0) + COOLDOWN_MS - now;
+      return Math.max(0, left);
+    }
+    function fmtMs(ms){ const s = Math.ceil(ms/1000); const m = Math.floor(s/60); const r=s%60; return m?`${m}m ${r}s`:`${r}s`; }
+    function setReqDisabled(disabled, tip=''){
+      if (!reqBtn) return;
+      if (disabled){ reqBtn.classList.add('disabled'); reqBtn.title = tip || 'Disabled'; }
+      else { reqBtn.classList.remove('disabled'); reqBtn.title=''; }
+    }
+    function updateRequestButton(state){
+      if (!reqBtn) return;
+      const s = (state||'').toLowerCase();
+      const left = cooldownLeftMs();
+      if (s === 'online'){ reqBtn.textContent = 'Request Server Start'; setReqDisabled(true,'Server is already ONLINE'); return; }
+      if (left>0){ reqBtn.textContent = `Please wait (${fmtMs(left)})`; setReqDisabled(true,'Cooldown active'); return; }
+      reqBtn.textContent = 'Request Server Start'; setReqDisabled(false);
+    }
+
+    // Live countdown while in cooldown
+    setInterval(()=>{
+      const left = cooldownLeftMs();
+      if (left>0){ reqBtn.textContent = `Please wait (${fmtMs(left)})`; setReqDisabled(true,'Cooldown active'); }
+    }, 1000);
+
+    async function sendWebhook(kind, extra){
+      if (!WEBHOOK_URL || WEBHOOK_URL.includes('REPLACE_ME')) return;
+      const content = `🟢 **Server start requested**\nUser: ${anonId}\nAddress: ${serverAddr.textContent.trim()}\nState: ${elState.textContent}\nUA: ${navigator.userAgent}`;
+      try{
+        await fetch(WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ content }) });
+      }catch(e){ console.error('Webhook failed', e); }
+    }
+
+    if (reqBtn){
+      reqBtn.addEventListener('click', async ()=>{
+        if (reqBtn.classList.contains('disabled')) return;
+        reqBtn.textContent = 'Sending…'; setReqDisabled(true);
+        try{
+          // Try to set requests/start/last to server timestamp, with metadata.
+          await update(ref(db, REQ_PATH), { last: serverTimestamp(), by: anonId, ua: navigator.userAgent });
+          await sendWebhook('request_start', { addr: serverAddr.textContent.trim() });
+          // Update local view immediately; server onValue will correct with true server ts.
+          lastReqTs = Date.now() + serverOffsetMs;
+          reqBtn.textContent = 'Request Sent — please wait';
+        }catch(e){
+          console.error('Request start failed', e);
+          // If rules blocked (cooldown), compute remaining from server value on next onValue.
+          reqBtn.textContent = 'Request failed';
+          setTimeout(()=> updateRequestButton(elState.textContent), 1200);
+        }
+      });
+    }
+
     // Attach listeners (and allow re-attach on resume/online)
     let unsubStatus = null, unsubMc = null;
     function attach(){
       if (unsubStatus) unsubStatus(); if (unsubMc) unsubMc();
-      unsubStatus = onValue(ref(db,'Status'), (snap)=>{ console.log('[Status]',snap.val()); recomputeOverride(snap.val()); }, (e)=>console.error('Status listener error', e));
+      unsubStatus = onValue(ref(db,'Status'), (snap)=>{ recomputeOverride(snap.val()); }, (e)=>console.error('Status listener error', e));
       unsubMc = onValue(ref(db,'mc_status'), (snap)=>{ const v=snap.val()||{}; const stale=isStale(v.last_updated); const state=(v.state||'loading').toLowerCase();
         // Update fields
         elMotd.textContent = stripMinecraftCodes(v.motd);
@@ -291,6 +392,7 @@
           const nowMs=Date.now(); if (nowMs-lastSoundMs>15000){ try{ onlineSnd.currentTime=0; onlineSnd.play(); lastSoundMs=nowMs; }catch(e){} }
         }
         prevState = state;
+        updateRequestButton(state);
       }, (e)=>console.error('mc_status listener error',e));
     }
 
@@ -312,6 +414,7 @@
         elPing.textContent = (v.ping_ms!=null)? `${v.ping_ms} ms` : '—';
         elUpdated.textContent = v.last_updated? new Date(v.last_updated*1000).toLocaleString() : '—';
         if (!overrideInfo) setStateBadge(state, stale);
+        updateRequestButton(state);
       } catch(e){ console.error('Hard refresh failed', e); }
     }
     setInterval(hardRefreshRead, 20000); // every 20s

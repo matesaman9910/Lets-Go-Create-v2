@@ -235,11 +235,11 @@
 
     // Override map & truthiness helper
     const OV_MAP = {
-      Lockdown:      { label: 'LOCKDOWN',      cls: 'err',  desc: 'Restricted access — admins only.' },
-      Maintenance:   { label: 'MAINTENANCE',   cls: 'warn', desc: 'Updates in progress; expect restarts.' },
-      WhitelistOnly: { label: 'WHITELIST ONLY',cls: 'warn', desc: 'Only approved players may join.' },
-      EventLive:     { label: 'EVENT LIVE',     cls: 'ok',   desc: 'Special event is active!' },
-      Emergency:     { label: 'EMERGENCY',      cls: 'err',  desc: 'Emergency issue — check Discord.' }
+      Lockdown:      { label: 'LOCKDOWN',      cls: 'err',  desc: 'The server is currently under lockdown; no one can join.' },
+      Maintenance:   { label: 'MAINTENANCE',   cls: 'warn', desc: 'Server is currently in maintenance mode. Please do not attempt to join.' },
+      WhitelistOnly: { label: 'WHITELIST ONLY',cls: 'warn', desc: 'Partial lockdown; only verified players may join' },
+      EventLive:     { label: 'EVENT LIVE',     cls: 'ok',   desc: 'An event is currently in progress. Please check Discord for more details.' },
+      Emergency:     { label: 'EMERGENCY',      cls: 'err',  desc: 'ALERT: SERVER EMERGENCY - Check Discord' }
     };
     const isTrue = (v)=> v === true || v === 'true' || v === 1 || v === '1';
 
@@ -280,10 +280,10 @@
         elUpdated.textContent = v.last_updated? new Date(v.last_updated*1000).toLocaleString() : '—';
         if (!overrideInfo) {
           setStateBadge(state, stale);
-          if (stale) { elNote.textContent = 'Monitor is OFF — this PC is not 24/7. Server likely fully OFF.'; }
+          if (stale) { elNote.textContent = 'Server is fully OFF — this server is not 24/7.'; }
           else if (state==='online') { elNote.textContent = 'Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.'; }
-          else if (state==='offline') { elNote.textContent = 'Server is OFFLINE (monitor alive) — could be maintenance, backups, or a restart.'; }
-          else if (state==='starting' || state==='stopping') { elNote.textContent = 'Status: STARTING/STOPPING — please wait, this can take a minute.'; }
+          else if (state==='offline') { elNote.textContent = 'Server is OFFLINE (system alive) — could be maintenance, backups, a restart or other.'; }
+          else if (state==='starting' || state==='stopping') { elNote.textContent = 'Status: STARTING/STOPPING — please wait, this can take some time.'; }
           else { elNote.textContent = 'Current status is LOADING. If you see this for over 5 seconds, refresh or check Discord.'; }
         }
         // Sound on transition to ONLINE (only when not overridden and not stale)

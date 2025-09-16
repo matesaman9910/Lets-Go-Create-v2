@@ -13,8 +13,11 @@
       "Status": { "Lockdown":false, "Maintenance":false, "WhitelistOnly":false, "EventLive":false, "Emergency":false },
       "mc_status": { "state":"online|offline|starting|stopping", "last_updated": 0, "players_online":0, "players_max":0, "version":"1.20.1", "ping_ms":0, "motd":"§a..." },
       "Requests": {
-        "start": { "ts": 0, "ua":"...", "meta": { ... } },
+        "start": { "ts": 0, "uid":"...", "ua":"...", "meta": { ... } },
         "_cooldowns": { "global": <ms_since_epoch> }
+      },
+      "Blocklist": {
+        "<uid>": true
       }
     }
   -->
@@ -30,7 +33,6 @@
     .brand .logo{width:28px;height:28px;border-radius:8px;background:url('https://file.garden/aACuwggY3QmuIi9B/server-icon.png') center/cover no-repeat;box-shadow:0 6px 20px rgba(103,232,249,.35)}
     .brand span{font-size:18px}
     .menu{display:flex;gap:14px;flex-wrap:wrap}
-    .menu a{color:var(--muted);font-weight:600}
     .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:22px;align-items:stretch;margin-top:26px}
     @media(max-width:900px){.hero{grid-template-columns:1fr}}
     .hero .pitch{background:linear-gradient(180deg,rgba(103,232,249,.08),rgba(103,232,249,0));border:1px solid var(--border);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow)}
@@ -56,7 +58,6 @@
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
     footer{margin-top:40px;border-top:1px solid var(--border);padding:22px 0;color:var(--muted);font-size:13px}
     .pill{padding:4px 10px;border-radius:999px;border:1px solid var(--border)}
-    /* Override banner */
     .override{position:sticky;top:56px;z-index:20;margin:12px 0;padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:#111827;display:none;align-items:center;gap:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;box-shadow:var(--shadow)}
     .override.show{display:flex}
     .override.ok{border-color:rgba(46,160,67,.5)}
@@ -68,7 +69,6 @@
     .override .desc{font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
     .error-big{position:sticky;top:56px;z-index:25;margin:12px 0;padding:14px 16px;border-radius:12px;border:2px dashed rgba(248,81,73,.6);background:#1a0f12;color:#ffd2d2;font-weight:900;display:none}
     .error-big.show{display:block}
-    /* Little toast label */
     .toast{position:fixed;right:18px;bottom:18px;background:#0c121a;border:1px solid var(--border);padding:10px 12px;border-radius:12px;box-shadow:var(--shadow);opacity:0;transform:translateY(10px);transition:all .2s}
     .toast.show{opacity:1;transform:translateY(0)}
   </style>
@@ -147,6 +147,9 @@
         </div>
         <div class="card"><strong>Installation Tips</strong><br/>Use Java 17+, allocate 4–6 GB RAM, and keep mods and configs in sync with the pack.</div>
         <div class="card"><strong>Troubleshooting</strong><br/>If you crash, remove old config caches, update GPU drivers, and verify mod versions match.</div>
+        <div class="card"><strong>World v1 Map</strong><br/>Want the previous season world? Grab the v1 map here.
+          <div style="margin-top:8px"><a class="btn" href="https://mega.nz/folder/2k51gTSZ#0ncbriauKyoqs04L8DU_xA" target="_blank" rel="noopener">Download v1 Map</a></div>
+        </div>
       </div>
     </section>
 
@@ -181,13 +184,9 @@
     </footer>
   </main>
 
-  <!-- Toast -->
   <div class="toast" id="toast"></div>
-
-  <!-- Sound (plays once when transitioning to ONLINE) -->
   <audio id="online-snd" src="https://file.garden/aACuwggY3QmuIi9B/aternos-sound.mp3" preload="auto"></audio>
 
-  <!-- Firebase client (modular v9+) -->
   <script type="module">
     const firebaseConfig = {
       apiKey: "AIzaSyArccJnD2qGe8ty503oBv0SQ772dUVEvbk",
@@ -200,9 +199,11 @@
     };
 
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, onAuthStateChanged, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
     import { getDatabase, ref, onValue, get, update, set } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db  = getDatabase(app);
 
     // Elements
@@ -236,31 +237,24 @@
     function flash(btn, txt){ const prev = btn.textContent; btn.textContent = txt; setTimeout(()=>btn.textContent = prev, 900); }
 
     // Helpers
-    const STALE_SECONDS = 60; // monitor considered OFF if older than this
+    const STALE_SECONDS = 60;
     const REQUEST_COOLDOWN_MS = 5*60*1000;
 
     function isStale(ts){ return !ts || (Math.floor(Date.now()/1000) - ts) > STALE_SECONDS; }
     function stripMinecraftCodes(s){ if(!s) return '—'; return s.replace(/§[0-9A-FK-OR]/gi, ''); }
     function setBadge(label, cls){ elState.textContent = label; elState.className = 'badge ' + cls; card.className = 'status ' + cls; }
-    function mmss(ms){
-      const total = Math.max(0, Math.floor(ms/1000));
-      const m = Math.floor(total/60);
-      const s = total % 60;
-      return `${m}:${String(s).padStart(2,'0')}`;
-    }
+    function mmss(ms){ const t=Math.max(0,Math.floor(ms/1000)); const m=Math.floor(t/60); const s=t%60; return `${m}:${String(s).padStart(2,'0')}`; }
     function showToast(msg){ toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2600); }
 
-    // State badge
     function setStateBadge(state, stale){
       const s = (state||'').toLowerCase();
-      if (stale) { setBadge('OFF', 'err'); return; } // monitor OFF
+      if (stale) { setBadge('OFF', 'err'); return; }
       if (s === 'online') { setBadge('ONLINE', 'ok'); return; }
       if (s === 'starting' || s === 'stopping') { setBadge('STARTING/STOPPING', 'warn'); return; }
-      if (s === 'offline') { setBadge('OFFLINE', 'err'); return; } // server offline, monitor alive
+      if (s === 'offline') { setBadge('OFFLINE', 'err'); return; }
       setBadge('LOADING', 'warn');
     }
 
-    // Overrides
     const OV_MAP = {
       Lockdown:      { label: 'LOCKDOWN',      cls: 'err',  desc: 'The server is currently under lockdown; no one can join.' },
       Maintenance:   { label: 'MAINTENANCE',   cls: 'warn', desc: 'Server is currently in maintenance mode. Please do not attempt to join.' },
@@ -284,7 +278,6 @@
       else { applyOverrideUI(null); }
     }
 
-    // Live listeners (status + mc_status)
     let prevState = 'loading';
     const onlineSnd = document.getElementById('online-snd');
     let audioUnlocked = false; let lastSoundMs = 0;
@@ -295,33 +288,56 @@
 
     let lastMcSnapshot = { state: 'loading', last_updated: 0 };
 
-    // Cooldown tracking (smooth, per-second)
+    // Cooldown (per-second UI)
     let cooldownUntil = Number(localStorage.getItem('lgc_cd_until') || 0);
     let cdTimerId = null;
     function cooldownRemaining(){ return Math.max(0, cooldownUntil - Date.now()); }
     function startCooldownTicker(){
       if (cdTimerId) return;
       cdTimerId = setInterval(()=>{
-        const remaining = cooldownRemaining();
-        if (remaining <= 0){
-          clearInterval(cdTimerId); cdTimerId = null;
-          pillCd.style.display = 'none';
-          updateRequestButtonState();
-          return;
-        }
-        pillCd.style.display = 'inline-block';
-        pillCd.textContent = `Cooldown: ${mmss(remaining)}`;
-        updateRequestButtonState(false); // no recompute of pill text here
+        const r = cooldownRemaining();
+        if (r <= 0){ clearInterval(cdTimerId); cdTimerId=null; pillCd.style.display='none'; updateRequestButtonState(); return; }
+        pillCd.style.display='inline-block'; pillCd.textContent = `Cooldown: ${mmss(r)}`;
+        updateRequestButtonState(false);
       }, 1000);
     }
     if (cooldownRemaining() > 0) startCooldownTicker();
 
+    // Auth + blocklist
+    let CURRENT_UID = null;
+    let IS_BLOCKED = false;
+
+    function updateBlockUI(){
+      if (IS_BLOCKED){
+        btnReq.disabled = true;
+        btnReq.title = 'You have been blocked from sending requests.';
+        pillCd.style.display = 'inline-block';
+        pillCd.textContent = 'Blocked';
+      }else{
+        updateRequestButtonState();
+      }
+    }
+
+    onAuthStateChanged(auth, async (user)=>{
+      if (!user){
+        await signInAnonymously(auth).catch(err=>console.error('Anon sign-in failed', err));
+        return;
+      }
+      CURRENT_UID = user.uid;
+
+      // Watch blocklist for this uid
+      onValue(ref(db, 'Blocklist/'+CURRENT_UID), (snap)=>{
+        IS_BLOCKED = !!snap.val();
+        updateBlockUI();
+      }, (e)=>console.warn('Blocklist read error', e));
+
+      attach(); // once we have auth, attach listeners
+    });
+
     // Subscriptions
-    let unsubStatus = null, unsubMc = null, unsubCooldown = null;
+    let unsubStatus=null, unsubMc=null, unsubCooldown=null;
     function attach(){
-      if (unsubStatus) unsubStatus();
-      if (unsubMc) unsubMc();
-      if (unsubCooldown) unsubCooldown();
+      if (unsubStatus) unsubStatus(); if (unsubMc) unsubMc(); if (unsubCooldown) unsubCooldown();
 
       unsubStatus = onValue(ref(db,'Status'),
         (snap)=>{ recomputeOverride(snap.val()); updateRequestButtonState(); },
@@ -335,7 +351,6 @@
           const stale=isStale(v.last_updated);
           const state=(v.state||'loading').toLowerCase();
 
-          // Update fields
           elMotd.textContent = stripMinecraftCodes(v.motd);
           elPlayers.textContent = `${v.players_online ?? '—'} / ${v.players_max ?? '—'}`;
           elVersion.textContent = v.version ?? '—';
@@ -348,10 +363,9 @@
             else if (state==='online') { elNote.textContent = 'Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.'; }
             else if (state==='offline') { elNote.textContent = 'Server is OFFLINE (system alive) — could be maintenance, backups, a restart or other.'; }
             else if (state==='starting' || state==='stopping') { elNote.textContent = 'Status: STARTING/STOPPING — please wait, this can take some time.'; }
-            else { elNote.textContent = 'Current status is LOADING. If you see this for over 5 seconds, refresh or check Discord.'; }
+            else { elNote.textContent = 'Current status is LOADING. If you see this over 5 seconds, refresh or check Discord.'; }
           }
 
-          // Sound on ONLINE transition
           const nowMs=Date.now();
           if (!overrideInfo && !stale && prevState!=='online' && state==='online' && audioUnlocked) {
             if (nowMs-lastSoundMs>15000){ try{ onlineSnd.currentTime=0; onlineSnd.play(); lastSoundMs=nowMs; }catch(e){} }
@@ -363,25 +377,16 @@
         (e)=>console.error('mc_status listener error',e)
       );
 
-      // Smooth cooldown: subscribe (if allowed) and tick locally per second
       unsubCooldown = onValue(ref(db,'Requests/_cooldowns/global'),
         (snap)=>{
-          const v = snap.exists() ? Number(snap.val()) : 0;
-          if (!Number.isFinite(v)) return;
-          cooldownUntil = v;
-          localStorage.setItem('lgc_cd_until', String(cooldownUntil));
-          if (cooldownRemaining() > 0) startCooldownTicker();
+          const v = snap.exists()? Number(snap.val()):0;
+          if (Number.isFinite(v)){ cooldownUntil = v; localStorage.setItem('lgc_cd_until', String(cooldownUntil)); if (cooldownRemaining()>0) startCooldownTicker(); }
           updateRequestButtonState();
         },
-        (e)=>{
-          // If read denied, keep local-only behavior
-          console.warn('Cooldown read denied; using localStorage only');
-        }
+        (e)=>console.warn('Cooldown read denied; using local only', e)
       );
     }
-    attach();
 
-    // Visibility / network
     document.addEventListener('visibilitychange', async ()=>{ if (document.visibilityState==='visible'){ attach(); await hardRefreshRead(); }});
     window.addEventListener('online', async ()=>{ attach(); await hardRefreshRead(); });
 
@@ -404,8 +409,8 @@
 
     setTimeout(()=>{ if (elState.textContent==='LOADING' && !overrideInfo) elNote.textContent='Current status is LOADING. If you see this over 5 seconds, refresh the page or contact us on Discord.'; }, 5000);
 
-    // Button enable/disable uses local state only (no async fetch)
     function updateRequestButtonState(updatePill=true){
+      if (IS_BLOCKED){ updateBlockUI(); return; }
       const remaining = cooldownRemaining();
       const s = (lastMcSnapshot.state||'loading').toLowerCase();
       const stale = isStale(lastMcSnapshot.last_updated);
@@ -427,13 +432,13 @@
         if (remaining>0){
           pillCd.style.display = 'inline-block';
           pillCd.textContent = `Cooldown: ${mmss(remaining)}`;
-        } else {
+        } else if (!IS_BLOCKED){
           pillCd.style.display = 'none';
         }
       }
     }
 
-    // Discord webhook (browser-safe)
+    // Discord webhook
     const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1416728538853412874/qdQFEMcriYQIj0jfmZ4UhvnVgpUg9MzPYYmtnYgvznkGuOiDyvrDyhCCQxQWS83kKsHW";
     async function postDiscordWebhook(payload){
       try{
@@ -447,12 +452,13 @@
       }
     }
 
-    // Request start flow
+    const ROLE_PING = "<@&1417505226725920899>";
+
     btnReq.addEventListener('click', async ()=>{
+      if (IS_BLOCKED){ showToast('You are blocked from sending requests.'); return; }
       btnReq.disabled = true;
       const now = Date.now();
 
-      // Double-check local remaining
       if (cooldownRemaining() > 0){
         showToast(`Please wait ${mmss(cooldownRemaining())} before requesting again.`);
         updateRequestButtonState();
@@ -466,29 +472,26 @@
       };
       const payload = {
         ts: now,
+        uid: CURRENT_UID || 'unknown',
         ua: navigator.userAgent.slice(0,1024),
         meta
       };
 
       try{
-        // Write the request
         await update(ref(db, 'Requests'), { start: payload });
 
-        // Set cooldown target locally first; server rules may also set it
         cooldownUntil = now + REQUEST_COOLDOWN_MS;
         localStorage.setItem('lgc_cd_until', String(cooldownUntil));
-        startCooldownTicker();
+        try { await set(ref(db, 'Requests/_cooldowns/global'), cooldownUntil); } catch(e) {}
+        if (cooldownRemaining() > 0) startCooldownTicker();
         updateRequestButtonState();
 
-        // Try writing global cooldown (if allowed)
-        try { await set(ref(db, 'Requests/_cooldowns/global'), cooldownUntil); } catch(e) { /* ignore */ }
-
-        // Send webhook
         const mc = lastMcSnapshot || {};
         const stale = isStale(mc.last_updated);
         const state = (mc.state||'unknown').toUpperCase();
         const untilUnix = Math.floor(cooldownUntil/1000);
         const fields = [
+          `**UID:** \`${payload.uid}\``,
           `**From:** ${location.hostname}`,
           `**State (now):** ${stale ? 'OFF (monitor)' : state}`,
           `**UA:** ${payload.ua.substring(0,140)}…`,
@@ -497,12 +500,8 @@
         ].join('\n');
 
         await postDiscordWebhook({
-          content: "<@&1417505226725920899>🟢 **Server start requested**",
-          embeds: [{
-            title: "Let’s Go Create v2 — Request",
-            description: fields,
-            color: 0x57F287
-          }]
+          content: `${ROLE_PING} 🟢 **Server start requested**`,
+          embeds: [{ title: "Let’s Go Create v2 — Request", description: fields, color: 0x57F287 }]
         });
 
         showToast('Request sent. Thanks!');
@@ -513,9 +512,6 @@
         updateRequestButtonState();
       }
     });
-
-    // Kick initial UI
-    updateRequestButtonState();
   </script>
 </body>
 </html>

@@ -7,25 +7,62 @@
   <meta name="description" content="Let’s Go Create V2 — live status, how to join, modpack download, and Discord." />
   <meta name="theme-color" content="#2ea043" />
   <meta http-equiv="Cache-Control" content="no-store" />
+
   <!--
-    Firebase data shape:
+    █████ LGCv2 STATUS SITE (FULL) █████
+
+    Firebase Realtime Database shape used here:
     {
-      "Status": { "Lockdown":false, "Maintenance":false, "WhitelistOnly":false, "EventLive":false, "Emergency":false },
-      "mc_status": { "state":"online|offline|starting|stopping", "last_updated": 0, "players_online":0, "players_max":0, "version":"1.20.1", "ping_ms":0, "motd":"§a..." },
+      "Status": {
+        "Lockdown": false,
+        "Maintenance": false,
+        "WhitelistOnly": false,
+        "EventLive": false,
+        "Emergency": false
+      },
+      "mc_status": {
+        "state": "online|offline|starting|stopping",
+        "last_updated": <unix_seconds>,
+        "players_online": 0,
+        "players_max": 0,
+        "version": "1.20.1",
+        "ping_ms": 0,
+        "motd": "§a..."
+      },
       "Requests": {
-        "start": { "ts": 0, "uid":"...", "ua":"...", "meta": { ... } },
-        "_cooldowns": { "global": <ms_since_epoch> }
+        "start": { "ts": <ms_epoch>, "ua":"...", "meta": { ... }, "uid":"..." },
+        "_cooldowns": { "global": <ms_epoch_until> }
       },
       "Blocklist": {
         "<uid>": true
       }
     }
   -->
+
   <style>
-    :root { --bg:#0b0f14; --panel:#0f1620; --card:#121a25; --border:#233142; --fg:#e6edf3; --muted:#a7b1bd; --brand:#67e8f9; --accent:#2ea043; --accent-2:#8b5cf6; --ok:#2ea043; --warn:#bb8009; --err:#f85149; --shadow:0 12px 40px rgba(0,0,0,.35); --radius:16px; }
+    /* =============== THEME TOKENS =============== */
+    :root {
+      --bg:#0b0f14; --panel:#0f1620; --card:#121a25; --border:#233142;
+      --fg:#e6edf3; --muted:#a7b1bd; --brand:#67e8f9; --accent:#2ea043; --accent-2:#8b5cf6;
+      --ok:#2ea043; --warn:#bb8009; --err:#f85149;
+      --shadow:0 12px 40px rgba(0,0,0,.35); --radius:16px;
+    }
+
+    /* =============== BASE =============== */
     *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:radial-gradient(1200px 600px at 20% -10%,#0f1b2a 0%,transparent 60%),radial-gradient(1000px 600px at 120% 20%,#131f2f 0%,transparent 50%),var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    html,body{
+      margin:0;padding:0;
+      background:
+        radial-gradient(1200px 600px at 20% -10%,#0f1b2a 0%,transparent 60%),
+        radial-gradient(1000px 600px at 120% 20%,#131f2f 0%,transparent 50%),
+        var(--bg);
+      color:var(--fg);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+    }
     a{color:#8ab4ff;text-decoration:none} a:hover{text-decoration:underline}
+    code{background:#0c121a;border:1px solid var(--border);padding:.1em .35em;border-radius:6px}
+
+    /* =============== LAYOUT =============== */
     .wrap{max-width:1100px;margin:0 auto;padding:24px}
     header{position:sticky;top:0;backdrop-filter:blur(8px);background:rgba(11,15,20,.6);border-bottom:1px solid rgba(255,255,255,.06);z-index:10}
     .nav{display:flex;align-items:center;justify-content:space-between;gap:16px}
@@ -33,31 +70,45 @@
     .brand .logo{width:28px;height:28px;border-radius:8px;background:url('https://file.garden/aACuwggY3QmuIi9B/server-icon.png') center/cover no-repeat;box-shadow:0 6px 20px rgba(103,232,249,.35)}
     .brand span{font-size:18px}
     .menu{display:flex;gap:14px;flex-wrap:wrap}
+    .menu a{color:var(--muted);font-weight:600}
+
     .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:22px;align-items:stretch;margin-top:26px}
     @media(max-width:900px){.hero{grid-template-columns:1fr}}
-    .hero .pitch{background:linear-gradient(180deg,rgba(103,232,249,.08),rgba(103,232,249,0));border:1px solid var(--border);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow)}
+
+    /* =============== CARDS/BUTTONS/BADGES =============== */
+    .pitch{background:linear-gradient(180deg,rgba(103,232,249,.08),rgba(103,232,249,0));border:1px solid var(--border);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow)}
     .kicker{color:var(--brand);font-weight:800;letter-spacing:.2em;text-transform:uppercase;font-size:12px}
     h1{font-size:34px;margin:8px 0 10px 0}
     p.lead{color:var(--muted);font-size:16px;line-height:1.5}
     .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+
     .btn{display:inline-flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:linear-gradient(180deg,#0e151f,#0c121a);color:var(--fg);font-weight:700;box-shadow:var(--shadow);cursor:pointer}
     .btn:hover{transform:translateY(-1px)}
     .btn.primary{background:linear-gradient(180deg,#193c2b,#13291e);border-color:#1f4d33}
     .btn.ghost{background:linear-gradient(180deg,#0e151f,#0c121a);opacity:.9}
     .btn[disabled]{opacity:.5;cursor:not-allowed;filter:grayscale(60%)}
     .btn .dot{width:8px;height:8px;border-radius:999px;background:var(--brand)}
+
     .status{background:linear-gradient(180deg,rgba(139,92,246,.08),rgba(139,92,246,0));border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
     .rows{display:grid;gap:12px}
     .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .label{color:var(--muted)} .value{font-weight:800}
+    .label{color:var(--muted)}
+    .value{font-weight:800}
     .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#0c121a;text-transform:uppercase;font-weight:800;font-size:12px;letter-spacing:.06em}
-    .badge.ok{color:var(--ok);border-color:rgba(46,160,67,.5)} .badge.warn{color:var(--warn);border-color:rgba(187,128,9,.5)} .badge.err{color:var(--err);border-color:rgba(248,81,73,.5)}
+    .badge.ok{color:var(--ok);border-color:rgba(46,160,67,.5)}
+    .badge.warn{color:var(--warn);border-color:rgba(187,128,9,.5)}
+    .badge.err{color:var(--err);border-color:rgba(248,81,73,.5)}
+    .pill{padding:4px 10px;border-radius:999px;border:1px solid var(--border)}
+
     .note{margin-top:8px;color:var(--muted);font-size:12px;line-height:1.4}
-    section{margin-top:38px} h2{font-size:22px;margin:0 0 14px 0}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px} @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    section{margin-top:38px}
+    h2{font-size:22px;margin:0 0 14px 0}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
     footer{margin-top:40px;border-top:1px solid var(--border);padding:22px 0;color:var(--muted);font-size:13px}
-    .pill{padding:4px 10px;border-radius:999px;border:1px solid var(--border)}
+
+    /* =============== OVERRIDES / ERRORS / TOASTS =============== */
     .override{position:sticky;top:56px;z-index:20;margin:12px 0;padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:#111827;display:none;align-items:center;gap:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;box-shadow:var(--shadow)}
     .override.show{display:flex}
     .override.ok{border-color:rgba(46,160,67,.5)}
@@ -69,6 +120,9 @@
     .override .desc{font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
     .error-big{position:sticky;top:56px;z-index:25;margin:12px 0;padding:14px 16px;border-radius:12px;border:2px dashed rgba(248,81,73,.6);background:#1a0f12;color:#ffd2d2;font-weight:900;display:none}
     .error-big.show{display:block}
+
+    .infobar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;color:var(--muted);font-size:12px}
+    .infobar .me{opacity:.7}
     .toast{position:fixed;right:18px;bottom:18px;background:#0c121a;border:1px solid var(--border);padding:10px 12px;border-radius:12px;box-shadow:var(--shadow);opacity:0;transform:translateY(10px);transition:all .2s}
     .toast.show{opacity:1;transform:translateY(0)}
   </style>
@@ -76,7 +130,9 @@
 <body>
   <header>
     <div class="wrap nav">
-      <div class="brand"><div class="logo"></div><span>Let’s Go Create V2</span></div>
+      <div class="brand">
+        <div class="logo"></div><span>Let’s Go Create V2</span>
+      </div>
       <nav class="menu">
         <a href="#status">Status</a>
         <a href="#join">Join</a>
@@ -90,14 +146,25 @@
   </header>
 
   <main class="wrap">
+    <!-- Override banners -->
     <div id="override-error" class="error-big">STATUS ERROR — Multiple overrides active. Fix toggles in Firebase.</div>
-    <div id="override-banner" class="override"><span class="pill" id="override-label"></span><span class="desc" id="override-desc"></span></div>
+    <div id="override-banner" class="override">
+      <span class="pill" id="override-label"></span>
+      <span class="desc" id="override-desc"></span>
+    </div>
 
+    <!-- HERO -->
     <div class="hero" id="top">
+      <!-- LEFT: Pitch + CTAs -->
       <div class="pitch">
         <div class="kicker">Let’s Go Create V2</div>
         <h1>A living world with laws, trials, government & economy.</h1>
-        <p class="lead">Join a highly organized survival server where players help shape the society: court trials, ethics oversight, petitions, elections, and more. Fully documented. Professionally run.</p>
+        <p class="lead">
+          Join a highly organized survival server where players help shape the society:
+          court trials, ethics oversight, petitions, elections, and more. Fully documented.
+          Professionally run.
+        </p>
+
         <div class="cta">
           <button class="btn primary" id="copy-ip"><span class="dot"></span> Copy Server Address</button>
           <a class="btn" id="mods-link" href="https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA" target="_blank" rel="noopener">Download Modpack</a>
@@ -105,22 +172,34 @@
           <button class="btn ghost" id="request-start" title="Ask admins to start the server">Request Server Start</button>
           <span class="pill" id="cooldown-pill" style="display:none">cooldown</span>
         </div>
-        <div style="margin-top:10px;color:var(--muted);font-size:13px">Address: <span class="badge" id="server-address">known-resorts.gl.joinmc.link</span></div>
+
+        <div class="infobar">
+          <span>Address: <span class="badge" id="server-address">known-resorts.gl.joinmc.link</span></span>
+          <span class="me">You: <span id="auth-pill" class="pill">guest</span></span>
+          <span id="blocked-pill" class="pill" style="display:none;border-color:#f00;color:#f00;">BLOCKED</span>
+        </div>
       </div>
 
+      <!-- RIGHT: Live Status -->
       <aside class="status" id="status">
-        <div class="row" style="margin-bottom:8px"><span class="label">Server Status</span><span class="badge" id="state">LOADING</span></div>
+        <div class="row" style="margin-bottom:8px">
+          <span class="label">Server Status</span>
+          <span class="badge" id="state">LOADING</span>
+        </div>
         <div class="rows">
-          <div class="row"><span class="label">MOTD</span><span class="value" id="motd">—</span></div>
-          <div class="row"><span class="label">Players</span><span class="value" id="players">—</span></div>
-          <div class="row"><span class="label">Version</span><span class="value" id="version">—</span></div>
-          <div class="row"><span class="label">Ping</span><span class="value" id="ping">—</span></div>
+          <div class="row"><span class="label">MOTD</span>    <span class="value" id="motd">—</span></div>
+          <div class="row"><span class="label">Players</span> <span class="value" id="players">—</span></div>
+          <div class="row"><span class="label">Version</span> <span class="value" id="version">—</span></div>
+          <div class="row"><span class="label">Ping</span>    <span class="value" id="ping">—</span></div>
         </div>
         <div class="row" style="margin-top:12px"><span class="label">Updated</span><span class="value" id="updated">—</span></div>
-        <div class="note" id="status-note">Current status is <strong>LOADING</strong>. If you see this over 5 seconds, refresh the page or contact us on Discord.</div>
+        <div class="note" id="status-note">
+          Current status is <strong>LOADING</strong>. If you see this over 5 seconds, refresh the page or contact us on Discord.
+        </div>
       </aside>
     </div>
 
+    <!-- ABOUT -->
     <section id="about">
       <h2>What makes us different</h2>
       <div class="grid">
@@ -130,29 +209,42 @@
       </div>
     </section>
 
+    <!-- JOIN -->
     <section id="join">
       <h2>How to join</h2>
       <div class="grid">
-        <div class="card"><strong>1) Download Mods</strong><br/>Get the modpack from the button above and import into your launcher (CurseForge/Prism/TL). </div>
+        <div class="card"><strong>1) Download Mods</strong><br/>Get the modpack from the button above and import into your launcher (CurseForge / Prism / TL).</div>
         <div class="card"><strong>2) Add Server</strong><br/>Use address <code id="addr-inline">known-resorts.gl.joinmc.link</code> and join the world.</div>
         <div class="card"><strong>3) Read the Basics</strong><br/>Trials, petitions, and government are part of gameplay. Respect the systems and have fun.</div>
       </div>
     </section>
 
+    <!-- MODS -->
     <section id="mods">
       <h2>Modpack</h2>
       <div class="grid">
-        <div class="card"><strong>Required Mods</strong><br/>Our modpack ensures compatibility with server features. Download from MEGA and import.
-          <div style="margin-top:8px"><a class="btn" href="https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA" target="_blank" rel="noopener">Open MEGA Folder</a></div>
+        <div class="card">
+          <strong>Required Mods</strong><br/>
+          Our modpack ensures compatibility with server features. Download from MEGA and import.
+          <div style="margin-top:8px">
+            <a class="btn" href="https://mega.nz/folder/n4ohwLoT#nZmVoc55DjgOZPodBekirA" target="_blank" rel="noopener">Open MEGA Folder</a>
+          </div>
         </div>
-        <div class="card"><strong>Installation Tips</strong><br/>Use Java 17+, allocate 4–6 GB RAM, and keep mods and configs in sync with the pack.</div>
-        <div class="card"><strong>Troubleshooting</strong><br/>If you crash, remove old config caches, update GPU drivers, and verify mod versions match.</div>
-        <div class="card"><strong>World v1 Map</strong><br/>Want the previous season world? Grab the v1 map here.
-          <div style="margin-top:8px"><a class="btn" href="https://mega.nz/folder/2k51gTSZ#0ncbriauKyoqs04L8DU_xA" target="_blank" rel="noopener">Download v1 Map</a></div>
+        <div class="card">
+          <strong>Installation Tips</strong><br/>
+          Use Java 17+, allocate 4–6 GB RAM, and keep mods and configs in sync with the pack.
+        </div>
+        <div class="card">
+          <strong>V1 Map — Archive</strong><br/>
+          Grab the old world (read-only). Useful for nostalgia, builds, and media.
+          <div style="margin-top:8px">
+            <a class="btn" href="https://mega.nz/folder/2k51gTSZ#0ncbriauKyoqs04L8DU_xA" target="_blank" rel="noopener">Download V1 Map</a>
+          </div>
         </div>
       </div>
     </section>
 
+    <!-- RULES -->
     <section id="rules">
       <h2>Rules & Systems</h2>
       <div class="grid">
@@ -167,6 +259,7 @@
       </div>
     </section>
 
+    <!-- FAQ -->
     <section id="faq">
       <h2>FAQ</h2>
       <div class="grid">
@@ -184,10 +277,15 @@
     </footer>
   </main>
 
+  <!-- Toast -->
   <div class="toast" id="toast"></div>
+
+  <!-- Sound (plays once when transitioning to ONLINE) -->
   <audio id="online-snd" src="https://file.garden/aACuwggY3QmuIi9B/aternos-sound.mp3" preload="auto"></audio>
 
+  <!-- ========================= APP SCRIPT ========================= -->
   <script type="module">
+    /************ Firebase config ************/
     const firebaseConfig = {
       apiKey: "AIzaSyArccJnD2qGe8ty503oBv0SQ772dUVEvbk",
       authDomain: "letsgocreatev2.firebaseapp.com",
@@ -198,15 +296,17 @@
       appId: "1:226793735098:web:4f06f0d316d3cc62955383"
     };
 
+    /************ Firebase SDKs ************/
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getAuth, onAuthStateChanged, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
     import { getDatabase, ref, onValue, get, update, set } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
+    /************ Init ************/
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db  = getDatabase(app);
 
-    // Elements
+    /************ Elements ************/
     const elState   = document.getElementById('state');
     const elMotd    = document.getElementById('motd');
     const elPlayers = document.getElementById('players');
@@ -216,8 +316,7 @@
     const elNote    = document.getElementById('status-note');
     const card      = document.getElementById('status');
     const serverAddr= document.getElementById('server-address');
-    const addrInline= document.getElementById('addr-inline');
-    if (addrInline) addrInline.textContent = serverAddr.textContent;
+    const addrInline= document.getElementById('addr-inline'); if (addrInline) addrInline.textContent = serverAddr.textContent;
 
     const ovBanner = document.getElementById('override-banner');
     const ovLabel  = document.getElementById('override-label');
@@ -229,32 +328,44 @@
     const pillCd   = document.getElementById('cooldown-pill');
     const toast    = document.getElementById('toast');
 
-    // Copy IP
+    const authPill = document.getElementById('auth-pill');
+    const blockedPill = document.getElementById('blocked-pill');
+
+    /************ Utilities ************/
+    const STALE_SECONDS = 60;
+    const REQUEST_COOLDOWN_MS = 5*60*1000;
+
+    const nowMs = ()=> Date.now();
+    const isStale = (ts)=> !ts || (Math.floor(nowMs()/1000) - ts) > STALE_SECONDS;
+    const stripMinecraftCodes = (s)=> s ? s.replace(/§[0-9A-FK-OR]/gi, '') : '—';
+    const setBadge = (label, cls)=> { elState.textContent = label; elState.className = 'badge ' + cls; card.className = 'status ' + cls; };
+    const mmss = (ms)=> {
+      const total = Math.max(0, Math.ceil(ms/1000));
+      const m = Math.floor(total/60);
+      const s = total % 60;
+      return `${m}:${String(s).padStart(2,'0')}`;
+    };
+    function showToast(msg){ toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2600); }
+    function truncUid(u){ return u ? u.slice(0,6)+'…'+u.slice(-4) : 'guest'; }
+
+    /************ Copy IP ************/
     btnCopy.addEventListener('click', async (e) => {
       try { await navigator.clipboard.writeText(serverAddr.textContent.trim()); flash(e.target, 'Copied!'); }
       catch { flash(e.target, 'Copy failed'); }
     });
     function flash(btn, txt){ const prev = btn.textContent; btn.textContent = txt; setTimeout(()=>btn.textContent = prev, 900); }
 
-    // Helpers
-    const STALE_SECONDS = 60;
-    const REQUEST_COOLDOWN_MS = 5*60*1000;
-
-    function isStale(ts){ return !ts || (Math.floor(Date.now()/1000) - ts) > STALE_SECONDS; }
-    function stripMinecraftCodes(s){ if(!s) return '—'; return s.replace(/§[0-9A-FK-OR]/gi, ''); }
-    function setBadge(label, cls){ elState.textContent = label; elState.className = 'badge ' + cls; card.className = 'status ' + cls; }
-    function mmss(ms){ const t=Math.max(0,Math.floor(ms/1000)); const m=Math.floor(t/60); const s=t%60; return `${m}:${String(s).padStart(2,'0')}`; }
-    function showToast(msg){ toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2600); }
-
+    /************ State badge ************/
     function setStateBadge(state, stale){
       const s = (state||'').toLowerCase();
-      if (stale) { setBadge('OFF', 'err'); return; }
-      if (s === 'online') { setBadge('ONLINE', 'ok'); return; }
-      if (s === 'starting' || s === 'stopping') { setBadge('STARTING/STOPPING', 'warn'); return; }
-      if (s === 'offline') { setBadge('OFFLINE', 'err'); return; }
+      if (stale) return setBadge('OFF', 'err');              // monitor OFF
+      if (s==='online') return setBadge('ONLINE', 'ok');
+      if (s==='starting' || s==='stopping') return setBadge('STARTING/STOPPING', 'warn');
+      if (s==='offline') return setBadge('OFFLINE', 'err');  // server offline, monitor alive
       setBadge('LOADING', 'warn');
     }
 
+    /************ Overrides ************/
     const OV_MAP = {
       Lockdown:      { label: 'LOCKDOWN',      cls: 'err',  desc: 'The server is currently under lockdown; no one can join.' },
       Maintenance:   { label: 'MAINTENANCE',   cls: 'warn', desc: 'Server is currently in maintenance mode. Please do not attempt to join.' },
@@ -278,66 +389,70 @@
       else { applyOverrideUI(null); }
     }
 
-    let prevState = 'loading';
+    /************ Sound on online ************/
     const onlineSnd = document.getElementById('online-snd');
-    let audioUnlocked = false; let lastSoundMs = 0;
+    let audioUnlocked = false; let lastSoundMs = 0; let prevState = 'loading';
     addEventListener('click', () => {
       if (audioUnlocked) return;
       onlineSnd.play().then(() => { onlineSnd.pause(); onlineSnd.currentTime = 0; audioUnlocked = true; }).catch(()=>{});
     }, { once:true });
 
+    /************ Live mc_status & Status ************/
     let lastMcSnapshot = { state: 'loading', last_updated: 0 };
+    let unsubStatus = null, unsubMc = null, unsubCooldown = null, unsubBlock = null;
 
-    // Cooldown (per-second UI)
-    let cooldownUntil = Number(localStorage.getItem('lgc_cd_until') || 0);
+    /************ Cooldown handling (ms epoch) ************/
+    let cooldownUntil = (() => {
+      const raw = Number(localStorage.getItem('lgc_cd_until') || 0);
+      return Number.isFinite(raw) ? raw : 0;
+    })();
     let cdTimerId = null;
-    function cooldownRemaining(){ return Math.max(0, cooldownUntil - Date.now()); }
+    const cooldownRemaining = ()=> Math.max(0, cooldownUntil - nowMs());
     function startCooldownTicker(){
       if (cdTimerId) return;
       cdTimerId = setInterval(()=>{
-        const r = cooldownRemaining();
-        if (r <= 0){ clearInterval(cdTimerId); cdTimerId=null; pillCd.style.display='none'; updateRequestButtonState(); return; }
-        pillCd.style.display='inline-block'; pillCd.textContent = `Cooldown: ${mmss(r)}`;
+        const remaining = cooldownRemaining();
+        if (remaining <= 0){
+          clearInterval(cdTimerId); cdTimerId = null;
+          pillCd.style.display = 'none';
+          updateRequestButtonState();
+          return;
+        }
+        pillCd.style.display = 'inline-block';
+        pillCd.textContent = `Cooldown: ${mmss(remaining)}`;
         updateRequestButtonState(false);
       }, 1000);
     }
     if (cooldownRemaining() > 0) startCooldownTicker();
 
-    // Auth + blocklist
-    let CURRENT_UID = null;
-    let IS_BLOCKED = false;
-
-    function updateBlockUI(){
-      if (IS_BLOCKED){
-        btnReq.disabled = true;
-        btnReq.title = 'You have been blocked from sending requests.';
-        pillCd.style.display = 'inline-block';
-        pillCd.textContent = 'Blocked';
-      }else{
-        updateRequestButtonState();
+    /************ Auth + Blocklist ************/
+    let authUid = null;
+    signInAnonymously(auth).catch(()=>{ /* ignore */ });
+    onAuthStateChanged(auth, async user=>{
+      authUid = user?.uid || null;
+      authPill.textContent = authUid ? `guest-${truncUid(authUid)}` : 'guest';
+      // Blocklist watch (if allowed by rules)
+      if (unsubBlock) unsubBlock();
+      if (authUid){
+        unsubBlock = onValue(ref(db, 'Blocklist/'+authUid), (snap)=>{
+          const blocked = !!snap.val();
+          if (blocked){
+            blockedPill.style.display = 'inline-block';
+            btnReq.disabled = true;
+            btnReq.title = 'You are blocked from sending requests.';
+          }else{
+            blockedPill.style.display = 'none';
+            updateRequestButtonState();
+          }
+        }, ()=>{/* ignore */});
       }
-    }
-
-    onAuthStateChanged(auth, async (user)=>{
-      if (!user){
-        await signInAnonymously(auth).catch(err=>console.error('Anon sign-in failed', err));
-        return;
-      }
-      CURRENT_UID = user.uid;
-
-      // Watch blocklist for this uid
-      onValue(ref(db, 'Blocklist/'+CURRENT_UID), (snap)=>{
-        IS_BLOCKED = !!snap.val();
-        updateBlockUI();
-      }, (e)=>console.warn('Blocklist read error', e));
-
-      attach(); // once we have auth, attach listeners
     });
 
-    // Subscriptions
-    let unsubStatus=null, unsubMc=null, unsubCooldown=null;
+    /************ Attach listeners ************/
     function attach(){
-      if (unsubStatus) unsubStatus(); if (unsubMc) unsubMc(); if (unsubCooldown) unsubCooldown();
+      if (unsubStatus) unsubStatus();
+      if (unsubMc) unsubMc();
+      if (unsubCooldown) unsubCooldown();
 
       unsubStatus = onValue(ref(db,'Status'),
         (snap)=>{ recomputeOverride(snap.val()); updateRequestButtonState(); },
@@ -359,16 +474,16 @@
 
           if (!overrideInfo) {
             setStateBadge(state, stale);
-            if (stale) { elNote.textContent = 'Server is fully OFF — this server is not 24/7.'; }
-            else if (state==='online') { elNote.textContent = 'Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.'; }
-            else if (state==='offline') { elNote.textContent = 'Server is OFFLINE (system alive) — could be maintenance, backups, a restart or other.'; }
-            else if (state==='starting' || state==='stopping') { elNote.textContent = 'Status: STARTING/STOPPING — please wait, this can take some time.'; }
-            else { elNote.textContent = 'Current status is LOADING. If you see this over 5 seconds, refresh or check Discord.'; }
+            if (stale) elNote.textContent = 'Server is fully OFF — this server is not 24/7.';
+            else if (state==='online') elNote.textContent = 'Server is ONLINE. If you still can’t join, wait a minute or check our Discord for updates.';
+            else if (state==='offline') elNote.textContent = 'Server is OFFLINE (system alive) — could be maintenance, backups, a restart or other.';
+            else if (state==='starting' || state==='stopping') elNote.textContent = 'Status: STARTING/STOPPING — please wait, this can take some time.';
+            else elNote.textContent = 'Current status is LOADING. If you see this for over 5 seconds, refresh or check Discord.';
           }
 
-          const nowMs=Date.now();
+          const nowM=nowMs();
           if (!overrideInfo && !stale && prevState!=='online' && state==='online' && audioUnlocked) {
-            if (nowMs-lastSoundMs>15000){ try{ onlineSnd.currentTime=0; onlineSnd.play(); lastSoundMs=nowMs; }catch(e){} }
+            if (nowM-lastSoundMs>15000){ try{ onlineSnd.currentTime=0; onlineSnd.play(); lastSoundMs=nowM; }catch(e){} }
           }
           prevState = state;
 
@@ -377,17 +492,28 @@
         (e)=>console.error('mc_status listener error',e)
       );
 
+      // Only accept newer & valid cooldowns from DB; never clobber with smaller/invalid
       unsubCooldown = onValue(ref(db,'Requests/_cooldowns/global'),
         (snap)=>{
-          const v = snap.exists()? Number(snap.val()):0;
-          if (Number.isFinite(v)){ cooldownUntil = v; localStorage.setItem('lgc_cd_until', String(cooldownUntil)); if (cooldownRemaining()>0) startCooldownTicker(); }
-          updateRequestButtonState();
+          if (!snap.exists()) return;
+          const v = Number(snap.val());
+          if (!Number.isFinite(v)) return;
+          if (v > cooldownUntil) {
+            cooldownUntil = v;
+            localStorage.setItem('lgc_cd_until', String(cooldownUntil));
+            if (cooldownRemaining() > 0) startCooldownTicker();
+            updateRequestButtonState();
+          }
         },
-        (e)=>console.warn('Cooldown read denied; using local only', e)
+        ()=>{ /* read denied: fine, local-only cooldown still works */ }
       );
     }
+    attach();
 
-    document.addEventListener('visibilitychange', async ()=>{ if (document.visibilityState==='visible'){ attach(); await hardRefreshRead(); }});
+    /************ Visibility / network ************/
+    document.addEventListener('visibilitychange', async ()=>{
+      if (document.visibilityState==='visible'){ attach(); await hardRefreshRead(); }
+    });
     window.addEventListener('online', async ()=>{ attach(); await hardRefreshRead(); });
 
     async function hardRefreshRead(){
@@ -406,23 +532,26 @@
       } catch(e){ console.error('Hard refresh failed', e); }
     }
     setInterval(hardRefreshRead, 20000);
-
     setTimeout(()=>{ if (elState.textContent==='LOADING' && !overrideInfo) elNote.textContent='Current status is LOADING. If you see this over 5 seconds, refresh the page or contact us on Discord.'; }, 5000);
 
+    /************ Request button enable/disable ************/
     function updateRequestButtonState(updatePill=true){
-      if (IS_BLOCKED){ updateBlockUI(); return; }
       const remaining = cooldownRemaining();
       const s = (lastMcSnapshot.state||'loading').toLowerCase();
       const stale = isStale(lastMcSnapshot.last_updated);
       const online = (!stale && s==='online');
 
-      const reason = online ? 'Server is already ONLINE'
-                  : (remaining>0 ? `Cooldown ${mmss(remaining)} left`
-                  : (overrideInfo ? `${ovLabel.textContent} active` : ''));
+      let reason = '';
+      if (online) reason = 'Server is already ONLINE';
+      else if (remaining>0) reason = `Cooldown ${mmss(remaining)} left`;
+      else if (overrideInfo) reason = `${ovLabel.textContent} active`;
 
-      if (online || remaining>0 || overrideInfo){
+      // Respect blocklist pill (if displayed)
+      const isBlocked = blockedPill.style.display !== 'none';
+
+      if (online || remaining>0 || overrideInfo || isBlocked){
         btnReq.disabled = true;
-        btnReq.title = reason || 'Unavailable';
+        btnReq.title = isBlocked ? 'You are blocked from sending requests.' : (reason || 'Unavailable');
       } else {
         btnReq.disabled = false;
         btnReq.title = 'Notify admins to start the server';
@@ -432,14 +561,14 @@
         if (remaining>0){
           pillCd.style.display = 'inline-block';
           pillCd.textContent = `Cooldown: ${mmss(remaining)}`;
-        } else if (!IS_BLOCKED){
+        } else {
           pillCd.style.display = 'none';
         }
       }
     }
 
-    // Discord webhook
-    const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1416728538853412874/qdQFEMcriYQIj0jfmZ4UhvnVgpUg9MzPYYmtnYgvznkGuOiDyvrDyhCCQxQWS83kKsHW";
+    /************ Discord webhook ************/
+    const DISCORD_WEBHOOK = "YOUR_WEBHOOK_URL_HERE"; // <— REPLACE
     async function postDiscordWebhook(payload){
       try{
         const fd = new FormData();
@@ -452,47 +581,57 @@
       }
     }
 
-    const ROLE_PING = "<@&1417505226725920899>";
-
+    /************ Request start flow ************/
     btnReq.addEventListener('click', async ()=>{
-      if (IS_BLOCKED){ showToast('You are blocked from sending requests.'); return; }
       btnReq.disabled = true;
-      const now = Date.now();
+      const now = nowMs();
 
-      if (cooldownRemaining() > 0){
-        showToast(`Please wait ${mmss(cooldownRemaining())} before requesting again.`);
+      // Local guard
+      const remainingLocal = cooldownRemaining();
+      if (remainingLocal > 0){
+        showToast(`Please wait ${mmss(remainingLocal)} before requesting again.`);
+        updateRequestButtonState();
+        return;
+      }
+      // Guard blocklist (UI)
+      if (blockedPill.style.display !== 'none'){
+        showToast('You are blocked from sending requests.');
         updateRequestButtonState();
         return;
       }
 
-      const meta = {
-        page: location.href,
-        tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
-        lang: navigator.language || 'unknown',
-      };
       const payload = {
-        ts: now,
-        uid: CURRENT_UID || 'unknown',
+        ts: now,                             // ms epoch
         ua: navigator.userAgent.slice(0,1024),
-        meta
+        uid: authUid || null,
+        meta: {
+          page: location.href,
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
+          lang: navigator.language || 'unknown'
+        }
       };
 
       try{
+        // Write the request (server rules will enforce cooldown / blocks)
         await update(ref(db, 'Requests'), { start: payload });
 
+        // Set local cooldown immediately for UX
         cooldownUntil = now + REQUEST_COOLDOWN_MS;
         localStorage.setItem('lgc_cd_until', String(cooldownUntil));
-        try { await set(ref(db, 'Requests/_cooldowns/global'), cooldownUntil); } catch(e) {}
-        if (cooldownRemaining() > 0) startCooldownTicker();
+        startCooldownTicker();
         updateRequestButtonState();
 
+        // Try to write the global cooldown (if rules allow)
+        try { await set(ref(db, 'Requests/_cooldowns/global'), cooldownUntil); } catch(e) { /* ignore */ }
+
+        // Send webhook (use local-known-good seconds)
         const mc = lastMcSnapshot || {};
         const stale = isStale(mc.last_updated);
         const state = (mc.state||'unknown').toUpperCase();
         const untilUnix = Math.floor(cooldownUntil/1000);
         const fields = [
-          `**UID:** \`${payload.uid}\``,
           `**From:** ${location.hostname}`,
+          `**UID:** ${authUid || 'anon'}`,
           `**State (now):** ${stale ? 'OFF (monitor)' : state}`,
           `**UA:** ${payload.ua.substring(0,140)}…`,
           `**Page:** ${location.href}`,
@@ -500,7 +639,7 @@
         ].join('\n');
 
         await postDiscordWebhook({
-          content: `${ROLE_PING} 🟢 **Server start requested**`,
+          content: "🟢 **Server start requested**",
           embeds: [{ title: "Let’s Go Create v2 — Request", description: fields, color: 0x57F287 }]
         });
 
@@ -512,6 +651,9 @@
         updateRequestButtonState();
       }
     });
+
+    // Initial UI kick
+    updateRequestButtonState();
   </script>
 </body>
 </html>

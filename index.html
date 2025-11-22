@@ -567,16 +567,20 @@
       }
     }
 
-    /************ Discord webhook ************/
-    const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1430256408342954145/rNcMKGNGriYEtDzjzSP4dO-Yg5c-wB3PxCJGF-mNCgJf8mprYsk8-1D0xV71AM-Q98zI"; // <— REPLACE
+    /************ Discord webhook via Cloudflare Worker ************/
+    // Point this to your Worker URL, NOT the Discord webhook
+    const WORKER_ENDPOINT = "https://lgcwebhook.matejkratochvilbilina.workers.dev/";
+
     async function postDiscordWebhook(payload){
       try{
-        const fd = new FormData();
-        fd.append('payload_json', JSON.stringify(payload));
-        await fetch(DISCORD_WEBHOOK, { method:'POST', mode:'no-cors', body: fd });
+        await fetch(WORKER_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
         return true;
       }catch(e){
-        console.error('Webhook send failed:', e);
+        console.error('Worker webhook send failed:', e);
         return false;
       }
     }
